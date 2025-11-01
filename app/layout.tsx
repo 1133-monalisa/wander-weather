@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Wander Weather",
-  description: "weather,smart,ai",
+ description: 'Weather-first travel assistant'
 };
 
 export default function RootLayout({
