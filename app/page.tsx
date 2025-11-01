@@ -3,20 +3,21 @@ import React, { useState, FormEvent } from 'react';
 
 type Daily = {
   dt: number;
-  temp: { day: number };
+  temp: { day: number | null; max?: number | null; min?: number | null };
   pop?: number;
-  weather: { description: string }[];
+  weather: { description: string; code?: number | null }[];
 };
 
 type Current = {
   temp: number | null;
-  feels_like: number | null;
-  humidity: number | null;
-  wind_speed: number | null;
-  weather: { description: string }[];
+  feels_like?: number | null;
+  humidity?: number | null;
+  wind_speed?: number | null;
+  weather: { description: string; code?: number | null }[];
   sunrise?: number | null;
   sunset?: number | null;
   timezone_offset?: number;
+  weathercode?: number | null;
 };
 
 type Payload = {
@@ -63,7 +64,6 @@ export default function Page() {
         throw new Error(msg);
       }
       setPayload(data as Payload);
-      // smooth scroll so results appear on mobile
       window.scrollTo({ top: 300, behavior: 'smooth' });
     } catch (err: any) {
       console.error(err);
@@ -87,6 +87,47 @@ export default function Page() {
     if (!ts) return '';
     const d = new Date(ts * 1000);
     return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  function weatherIcon(code?: number | null) {
+    // Small, simple inline SVGs per broad code categories
+    if (code === null || code === undefined) return <span className="text-xl">❔</span>;
+
+    // Clear-ish
+    if (code === 0 || code === 1) {
+      return (
+        <svg className="w-8 h-8 mx-auto" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      );
+    }
+    // Partly cloudy / cloud
+    if (code === 2 || code === 3 || (code >= 45 && code <= 48)) {
+      return (
+        <svg className="w-8 h-8 mx-auto" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M5 16a4 4 0 014-4h6a3 3 0 010 6H7a4 4 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M16 8a3 3 0 01-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    }
+    // Drizzle / rain
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 61 && code <= 65)) {
+      return (
+        <svg className="w-8 h-8 mx-auto" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M5 15a4 4 0 014-4h6a3 3 0 010 6H9a4 4 0 01-4-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M8 20l0-2M12 20l0-2M16 20l0-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    }
+    // Snow
+    if ((code >= 71 && code <= 86) || code === 77) {
+      return <span className="text-xl mx-auto">❄️</span>;
+    }
+    // Thunder
+    if (code >= 95 && code <= 99) {
+      return <span className="text-xl mx-auto">⚡</span>;
+    }
+    return <span className="text-xl mx-auto">🌫️</span>;
   }
 
   return (
@@ -156,13 +197,14 @@ export default function Page() {
                     <h3 className="text-lg font-semibold">
                       {payload.location.name}{payload.location.state ? `, ${payload.location.state}` : ''}, {payload.location.country}
                     </h3>
+                    <div className="text-xs text-slate-500 mt-1 capitalize">{payload.weather.current.weather?.[0]?.description ?? ''}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-4xl font-extrabold">
                       {safeRound(payload.weather.current.temp) ?? '--'}°C
                     </div>
                     <div className="text-xs text-slate-500">
-                      Feels like {safeRound(payload.weather.current.feels_like) ?? '--'}°C
+                      Wind {safeRound(payload.weather.current.wind_speed) ?? '--'} m/s
                     </div>
                   </div>
                 </div>
@@ -228,10 +270,18 @@ export default function Page() {
                   <div className="mt-3 overflow-x-auto">
                     <div className="flex gap-3 py-2">
                       {payload.weather.daily.slice(0, 7).map((d, i) => (
-                        <div key={i} className="min-w-[110px] p-3 bg-slate-50 rounded-lg text-center">
+                        <div key={i} className="min-w-[130px] p-3 bg-slate-50 rounded-lg text-center">
                           <div className="text-xs text-slate-500">{formatDate(d.dt)}</div>
                           <div className="mt-2 font-semibold">{safeRound(d.temp.day) ?? '--'}°C</div>
+
+                          <div className="mt-1">{weatherIcon(d.weather?.[0]?.code)}</div>
+
                           <div className="text-xs capitalize text-slate-600 mt-1">{d.weather?.[0]?.description ?? '-'}</div>
+
+                          <div className="mt-2 text-xs text-slate-500">
+                            Max {safeRound(d.temp.max) ?? '--'}° / Min {safeRound(d.temp.min) ?? '--'}°
+                          </div>
+
                           <div className="text-xs text-slate-500 mt-1">Rain {Math.round((d.pop ?? 0) * 100)}%</div>
                         </div>
                       ))}

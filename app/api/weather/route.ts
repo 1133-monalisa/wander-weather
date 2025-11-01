@@ -3,10 +3,10 @@ import { NextResponse } from 'next/server';
 
 type GeoResult = {
   name: string;
-  lat: number;
-  lon: number;
+  latitude: number;
+  longitude: number;
   country: string;
-  state?: string;
+  admin1?: string;
 };
 
 export async function GET(request: Request) {
@@ -15,91 +15,68 @@ export async function GET(request: Request) {
     const q = searchParams.get('q');
     if (!q) return NextResponse.json({ error: 'Missing q parameter' }, { status: 400 });
 
-    const key = process.env.OWM_API_KEY;
-    if (!key) return NextResponse.json({ error: 'Missing OWM_API_KEY on server' }, { status: 500 });
-
-    // 1) Geocode
+    // 1) Geocode via Open-Meteo (no API key)
     const geoRes = await fetch(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=1&appid=${key}`
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1`
     );
     const geoJson = await geoRes.json();
     if (!geoRes.ok) return NextResponse.json(geoJson, { status: geoRes.status });
-    if (!Array.isArray(geoJson) || geoJson.length === 0) {
+    if (!geoJson.results || geoJson.results.length === 0) {
       return NextResponse.json({ error: 'Location not found' }, { status: 404 });
     }
-    const geo = geoJson[0] as GeoResult;
-    const { lat, lon, name, country, state } = geo;
 
-    // 2) Fetch free endpoints: current weather + 5-day forecast (3-hour intervals)
-    const [currentRes, forecastRes] = await Promise.all([
-      fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${key}`),
-      fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${key}`)
-    ]);
+    const geo = geoJson.results[0] as GeoResult;
+    const { latitude: lat, longitude: lon, name, country, admin1: state } = geo;
 
-    const currentJson = await currentRes.json();
-    const forecastJson = await forecastRes.json();
+    // 2) Fetch forecast + current (daily fields include sunrise/sunset in local timezone ISO strings)
+    const url = [
+      `https://api.open-meteo.com/v1/forecast`,
+      `?latitude=${lat}`,
+      `&longitude=${lon}`,
+      `&current_weather=true`,
+      `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_mean,weathercode,sunrise,sunset`,
+      `&timezone=auto`
+    ].join('');
 
-    if (!currentRes.ok) return NextResponse.json(currentJson, { status: currentRes.status });
-    if (!forecastRes.ok) return NextResponse.json(forecastJson, { status: forecastRes.status });
+    const weatherRes = await fetch(url);
+    const weatherJson = await weatherRes.json();
+    if (!weatherRes.ok) return NextResponse.json(weatherJson, { status: weatherRes.status });
 
-    // 3) Convert 3-hour forecast into 7 daily summaries (avg temp, common description, avg pop)
-    type ForecastItem = {
-      dt: number;
-      main: { temp: number };
-      weather: { description: string }[];
-      pop?: number;
-    };
+    // 3) Shape response to match your frontend expectations (plus include weathercode for icons)
+    const currentWeather = weatherJson.current_weather ?? null;
 
-    const list: ForecastItem[] = Array.isArray(forecastJson.list) ? forecastJson.list : [];
-
-    // Group temps and descriptions by date (YYYY-MM-DD)
-    const dayMap: Record<
-      string,
-      {
-        temps: number[];
-        pops: number[];
-        descCounts: Record<string, number>;
-        dtFirst: number;
-      }
-    > = {};
-
-    for (const it of list) {
-      const dateStr = new Date(it.dt * 1000).toISOString().split('T')[0];
-      if (!dayMap[dateStr]) {
-        dayMap[dateStr] = { temps: [], pops: [], descCounts: {}, dtFirst: it.dt };
-      }
-      dayMap[dateStr].temps.push(it.main.temp);
-      if (typeof it.pop === 'number') dayMap[dateStr].pops.push(it.pop);
-      const desc = (it.weather?.[0]?.description || 'clear').toLowerCase();
-      dayMap[dateStr].descCounts[desc] = (dayMap[dateStr].descCounts[desc] || 0) + 1;
-    }
-
-    const daily = Object.entries(dayMap)
-      .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
-      .slice(0, 7)
-      .map(([date, info]) => {
-        const avgTemp = info.temps.reduce((a, b) => a + b, 0) / Math.max(1, info.temps.length);
-        const avgPop = info.pops.length ? info.pops.reduce((a, b) => a + b, 0) / info.pops.length : 0;
-        const mostCommonDesc = Object.entries(info.descCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'clear';
-        return {
-          dt: info.dtFirst,
-          temp: { day: avgTemp },
-          pop: avgPop,
-          weather: [{ description: capitalize(mostCommonDesc) }]
-        };
-      });
-
-    // 4) Shape current into a consistent small object
     const shapedCurrent = {
-      temp: currentJson.main?.temp ?? null,
-      feels_like: currentJson.main?.feels_like ?? null,
-      humidity: currentJson.main?.humidity ?? null,
-      wind_speed: currentJson.wind?.speed ?? null,
-      weather: Array.isArray(currentJson.weather) ? currentJson.weather : [{ description: 'N/A' }],
-      sunrise: currentJson.sys?.sunrise ?? null,
-      sunset: currentJson.sys?.sunset ?? null,
-      timezone_offset: forecastJson.city?.timezone ?? 0 // forecast has city.timezone (seconds)
+      temp: currentWeather?.temperature ?? null,
+      wind_speed: currentWeather?.windspeed ?? null,
+      weather: [{ description: codeToDescription(currentWeather?.weathercode), code: currentWeather?.weathercode ?? null }],
+      sunrise:
+        Array.isArray(weatherJson.daily?.sunrise) && weatherJson.daily.sunrise[0]
+          ? Math.floor(new Date(weatherJson.daily.sunrise[0]).getTime() / 1000)
+          : null,
+      sunset:
+        Array.isArray(weatherJson.daily?.sunset) && weatherJson.daily.sunset[0]
+          ? Math.floor(new Date(weatherJson.daily.sunset[0]).getTime() / 1000)
+          : null,
+      timezone_offset: 0, // timezone already applied by API (we keep compatibility field)
+      weathercode: currentWeather?.weathercode ?? null
     };
+
+    const times: string[] = weatherJson.daily?.time ?? [];
+    const maxArr: number[] = weatherJson.daily?.temperature_2m_max ?? [];
+    const minArr: number[] = weatherJson.daily?.temperature_2m_min ?? [];
+    const popArr: number[] = weatherJson.daily?.precipitation_probability_mean ?? [];
+    const codeArr: number[] = weatherJson.daily?.weathercode ?? [];
+
+    const daily = times.map((t: string, i: number) => ({
+      dt: Math.floor(new Date(t).getTime() / 1000),
+      temp: {
+        day: typeof maxArr[i] === 'number' && typeof minArr[i] === 'number' ? (maxArr[i] + minArr[i]) / 2 : (maxArr[i] ?? minArr[i] ?? null),
+        max: typeof maxArr[i] === 'number' ? maxArr[i] : null,
+        min: typeof minArr[i] === 'number' ? minArr[i] : null
+      },
+      pop: typeof popArr[i] === 'number' ? popArr[i] / 100 : 0,
+      weather: [{ description: codeToDescription(codeArr?.[i]), code: codeArr?.[i] ?? null }]
+    }));
 
     const payload = {
       location: { name, country, state, lat, lon },
@@ -113,7 +90,38 @@ export async function GET(request: Request) {
   }
 }
 
-function capitalize(s: string) {
-  if (!s) return s;
-  return s[0].toUpperCase() + s.slice(1);
+// Convert Open-Meteo weather codes to human descriptions
+function codeToDescription(code?: number): string {
+  if (code === undefined || code === null) return 'Unknown';
+  const table: Record<number, string> = {
+    0: 'Clear sky',
+    1: 'Mainly clear',
+    2: 'Partly cloudy',
+    3: 'Overcast',
+    45: 'Fog',
+    48: 'Depositing rime fog',
+    51: 'Light drizzle',
+    53: 'Moderate drizzle',
+    55: 'Dense drizzle',
+    56: 'Light freezing drizzle',
+    57: 'Dense freezing drizzle',
+    61: 'Slight rain',
+    63: 'Moderate rain',
+    65: 'Heavy rain',
+    66: 'Light freezing rain',
+    67: 'Heavy freezing rain',
+    71: 'Slight snow fall',
+    73: 'Moderate snow fall',
+    75: 'Heavy snow fall',
+    77: 'Snow grains',
+    80: 'Slight rain showers',
+    81: 'Moderate rain showers',
+    82: 'Violent rain showers',
+    85: 'Slight snow showers',
+    86: 'Heavy snow showers',
+    95: 'Thunderstorm',
+    96: 'Thunderstorm with slight hail',
+    99: 'Thunderstorm with heavy hail'
+  };
+  return table[code] || 'Unknown';
 }
