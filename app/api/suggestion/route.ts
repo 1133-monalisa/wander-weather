@@ -40,9 +40,60 @@ function safeNum(n: any, fallback: number | string | null = null): number | stri
   return fallback;
 }
 
+// --- helper: sleep + retryWithBackoff ---
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * retryWithBackoff - retries the provided function on transient errors (429, 503, etc)
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  attempts = 5,
+  baseDelayMs = 500,
+  maxDelayMs = 8000
+): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      attempt++;
+      const status =
+        err?.error?.code ?? err?.status ?? err?.statusCode ?? err?.code ?? err?.status_text;
+
+      // Consider these statuses transient. If not one of these, treat as non-transient.
+      const transientStatuses = new Set([429, 503, 'UNAVAILABLE', 'RATE_LIMIT_EXCEEDED', 'TOO_MANY_REQUESTS']);
+      const isTransient =
+        (typeof status === 'number' && (status === 429 || status === 503)) ||
+        (typeof status === 'string' && transientStatuses.has(status));
+
+      if (!isTransient || attempt >= attempts) {
+        // Rethrow the original error
+        throw err;
+      }
+
+      // Exponential backoff with jitter
+      const expo = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, attempt));
+      const jitter = Math.floor(Math.random() * Math.min(1000, Math.floor(expo / 2)));
+      const wait = Math.max(100, expo - jitter);
+      console.warn(
+        `Model call failed (attempt ${attempt}/${attempts}). status=${String(status)} — retrying in ${wait}ms`,
+        err?.message ?? err
+      );
+      await sleep(wait);
+      // loop to retry
+    }
+  }
+}
+
 export async function POST(request: Request) {
   if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY is not set in environment variables.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'GEMINI_API_KEY is not set in environment variables.' },
+      { status: 500 }
+    );
   }
 
   let payload: WeatherPayload;
@@ -53,7 +104,10 @@ export async function POST(request: Request) {
   }
 
   if (!payload?.location?.name || !Array.isArray(payload?.weather?.daily)) {
-    return NextResponse.json({ error: 'Payload missing required fields (location.name, weather.daily).' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Payload missing required fields (location.name, weather.daily).' },
+      { status: 400 }
+    );
   }
 
   try {
@@ -87,7 +141,9 @@ Do NOT use markdown headings. Keep each bullet line short.
 Current conditions: ${currentTemp ?? '—'}°C — ${currentWeather}
 
 7-day forecast:
-${dailyForecast.map(d => `- ${d.date}: ${d.min}°C to ${d.max}°C, Rain: ${d.rain}%, ${d.desc}`).join('\n')}
+${dailyForecast
+  .map((d) => `- ${d.date}: ${d.min}°C to ${d.max}°C, Rain: ${d.rain}%, ${d.desc}`)
+  .join('\n')}
 
 Include these labeled sections (each as short bullets prefixed by a bold label). Use 1–5 bullets per section:
 - **Activity Recommendations:** specific indoor/outdoor activities suitable for this week's weather.
@@ -102,21 +158,75 @@ Include these labeled sections (each as short bullets prefixed by a bold label).
 Tone: friendly, local, practical. Make lines short and scannable.
     `;
 
-    // Call the Gemini model
-    const response: any = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    });
+    // --- Model call with retry + fallback ---
+    const modelPrimary = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash';
+    const modelFallback = process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-2.1';
 
-    const suggestionText = (response?.text ?? '').toString().trim();
+    let response: any = null;
+
+    try {
+      response = await retryWithBackoff(
+        async () =>
+          await ai.models.generateContent({
+            model: modelPrimary,
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          }),
+        /*attempts=*/ 5,
+        /*baseDelayMs=*/ 600,
+        /*maxDelayMs=*/ 8000
+      );
+    } catch (errPrimary: any) {
+      console.error('Primary model failed after retries:', errPrimary?.message ?? errPrimary);
+      // Try fallback once
+      try {
+        console.info(`Attempting fallback model: ${modelFallback}`);
+        response = await ai.models.generateContent({
+          model: modelFallback,
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        });
+      } catch (errFallback: any) {
+        console.error('Fallback model also failed:', errFallback?.message ?? errFallback);
+        return NextResponse.json(
+          {
+            error: 'Suggestion service temporarily unavailable. Please try again in a few minutes.',
+            details:
+              process.env.NODE_ENV === 'development'
+                ? String(errFallback?.message ?? errFallback)
+                : undefined,
+          },
+          { status: 503 }
+        );
+      }
+    }
+
+    // Defensive extraction of text from possible model response shapes
+    let suggestionText = '';
+    try {
+      suggestionText =
+        (response?.text as string) ??
+        (response?.outputText as string) ??
+        (Array.isArray(response?.outputs) && response.outputs.length
+          ? // @ts-ignore
+            response.outputs.map((o: any) => o.text || o.content || '').join('\n')
+          : '') ??
+        '';
+      suggestionText = String(suggestionText).trim();
+    } catch (e) {
+      console.warn('Error extracting suggestion text:', e);
+      suggestionText = '';
+    }
 
     if (!suggestionText) {
+      console.error('AI returned empty suggestion:', response);
       return NextResponse.json({ error: 'AI returned empty suggestion.' }, { status: 500 });
     }
 
     return NextResponse.json({ suggestion: suggestionText }, { status: 200 });
   } catch (error: any) {
     console.error('Suggestion API error:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to generate suggestion.' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Failed to generate suggestion.' },
+      { status: 500 }
+    );
   }
 }
