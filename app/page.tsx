@@ -69,6 +69,16 @@ type Payload = {
   };
 };
 
+// A small helper component to update map view when the props change
+function MapAutoCenter({ lat, lon, zoom = 10 }: { lat: number; lon: number; zoom?: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    map.setView([lat, lon], zoom, { animate: true });
+  }, [lat, lon, zoom, map]);
+  return null;
+}
+
 export default function Page() {
   const [currentView, setCurrentView] = useState<
     "landing" | "app" | "login" | "register"
@@ -1164,6 +1174,36 @@ export default function Page() {
                   </p>
                 </div>
               </div>
+
+              {/* Map toggle */}
+              <div className="mt-4 flex items-center justify-between gap-4">
+                <div className="text-sm text-slate-600">Map showing the searched location (if available)</div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">Show map</label>
+                  <input type="checkbox" checked={showMap} onChange={() => setShowMap(v => !v)} className="rounded" />
+                </div>
+              </div>
+
+              {/* Leaflet Map */}
+              {showMap && (
+                <div className="mt-4 h-64 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                  <MapContainer center={[lat, lon]} zoom={10} style={{ height: '100%', width: '100%' }}>
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <MapAutoCenter lat={lat} lon={lon} zoom={10} />
+                    <Marker position={[lat, lon]}>
+                      <Popup>
+                        <div className="text-sm">
+                          <div className="font-semibold">{payload.location.name}, {payload.location.country}</div>
+                          <div>{safeRound(getFirstNumeric(payload.weather.current, ['temp'])) ?? '--'}°C • {payload.weather.current.weather?.[0]?.description || 'N/A'}</div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  </MapContainer>
+                </div>
+              )}
             </div>
 
             {/* Summary Card */}
