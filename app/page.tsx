@@ -1,8 +1,28 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { Cloud, Droplets, Wind, Sunrise, Sunset, ThermometerSun, Calendar, Navigation, MapPin, Umbrella } from 'lucide-react';
+
+// Leaflet / react-leaflet imports
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+// these imports provide the marker images when bundlers resolve them
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Fix leaflet's default icon paths so the marker shows up correctly in many bundlers
+if (typeof L !== 'undefined') {
+  // @ts-ignore
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: (markerIcon2x as any)?.src || markerIcon2x,
+    iconUrl: (markerIcon as any)?.src || markerIcon,
+    shadowUrl: (markerShadow as any)?.src || markerShadow,
+  });
+}
 
 type Daily = {
   dt: number;
@@ -37,6 +57,16 @@ type Payload = {
   };
 };
 
+// A small helper component to update map view when the props change
+function MapAutoCenter({ lat, lon, zoom = 10 }: { lat: number; lon: number; zoom?: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    map.setView([lat, lon], zoom, { animate: true });
+  }, [lat, lon, zoom, map]);
+  return null;
+}
+
 export default function Page() {
   const [query, setQuery] = useState('');
   const [payload, setPayload] = useState<Payload | null>(null);
@@ -46,6 +76,8 @@ export default function Page() {
   const [suggestionRaw, setSuggestionRaw] = useState<string | null>(null);
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+
+  const [showMap, setShowMap] = useState(true);
 
   function sanitizeSuggestion(raw: any) {
     if (raw === undefined || raw === null) return null;
@@ -268,6 +300,12 @@ export default function Page() {
 
   const summary = generateSummary(sanitizeSuggestion(suggestionRaw), payload);
 
+  // Determine coordinates (fallback to Kathmandu if not provided)
+  const defaultLat = 27.7172453; // Kathmandu
+  const defaultLon = 85.3239605;
+  const lat = payload?.location?.lat ?? defaultLat;
+  const lon = payload?.location?.lon ?? defaultLon;
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -385,6 +423,36 @@ export default function Page() {
                   </p>
                 </div>
               </div>
+
+              {/* Map toggle */}
+              <div className="mt-4 flex items-center justify-between gap-4">
+                <div className="text-sm text-slate-600">Map showing the searched location (if available)</div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">Show map</label>
+                  <input type="checkbox" checked={showMap} onChange={() => setShowMap(v => !v)} className="rounded" />
+                </div>
+              </div>
+
+              {/* Leaflet Map */}
+              {showMap && (
+                <div className="mt-4 h-64 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                  <MapContainer center={[lat, lon]} zoom={10} style={{ height: '100%', width: '100%' }}>
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <MapAutoCenter lat={lat} lon={lon} zoom={10} />
+                    <Marker position={[lat, lon]}>
+                      <Popup>
+                        <div className="text-sm">
+                          <div className="font-semibold">{payload.location.name}, {payload.location.country}</div>
+                          <div>{safeRound(getFirstNumeric(payload.weather.current, ['temp'])) ?? '--'}°C • {payload.weather.current.weather?.[0]?.description || 'N/A'}</div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  </MapContainer>
+                </div>
+              )}
             </div>
 
             {/* Summary Card */}
@@ -568,7 +636,7 @@ export default function Page() {
                     ))}
                   </div>
 
-               
+                
                 </div>
               )}
             </div>
