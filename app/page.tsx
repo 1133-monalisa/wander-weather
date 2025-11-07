@@ -69,16 +69,6 @@ type Payload = {
   };
 };
 
-// A small helper component to update map view when the props change
-function MapAutoCenter({ lat, lon, zoom = 10 }: { lat: number; lon: number; zoom?: number }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-    map.setView([lat, lon], zoom, { animate: true });
-  }, [lat, lon, zoom, map]);
-  return null;
-}
-
 export default function Page() {
   const [currentView, setCurrentView] = useState<
     "landing" | "app" | "login" | "register"
@@ -423,12 +413,9 @@ export default function Page() {
                   </svg>
                 </div>
                 <div>
-                  <a href="/" className="text-xl font-bold text-slate-900">
+                  <h1 className="text-xl font-bold text-slate-900">
                     Wander Weather
-                  </a>
-                  <p className="text-sm text-slate-600">
-                    Weather-informed travel planning
-                  </p>
+                  </h1>
                 </div>
               </div>
 
@@ -561,20 +548,20 @@ export default function Page() {
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-slate-900">
-                      Pokhara, Nepal
+                      Kathmandu, Nepal
                     </h3>
                     <p className="text-slate-600">Current conditions</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <div className="text-5xl font-bold text-slate-900">21°</div>
-                    <p className="text-slate-600">Sunny</p>
+                    <div className="text-5xl font-bold text-slate-900">22°</div>
+                    <p className="text-slate-600">Partly Cloudy</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
                     "Feels like 24°",
                     "Humidity 65%",
-                    "Wind 6 m/h",
+                    "Wind 12 km/h",
                     "Sunrise 6:12 AM",
                   ].map((item, i) => (
                     <div
@@ -764,6 +751,22 @@ export default function Page() {
         <footer className="bg-white border-t border-slate-200 py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="bg-indigo-600 text-white rounded-lg p-2">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">
+                  Wander Weather
+                </h3>
+              </div>
               <p className="text-slate-600 mb-8">
                 Team Wander Weather — Prativa Secondary School
               </p>
@@ -989,9 +992,9 @@ export default function Page() {
                 </svg>
               </div>
               <div>
-                <a href="/" className="text-xl font-bold text-slate-900">
+                <h1 className="text-xl font-bold text-slate-900">
                   Wander Weather
-                </a>
+                </h1>
                 <p className="text-sm text-slate-600">
                   Weather-informed travel planning
                 </p>
@@ -1174,36 +1177,6 @@ export default function Page() {
                   </p>
                 </div>
               </div>
-
-              {/* Map toggle */}
-              <div className="mt-4 flex items-center justify-between gap-4">
-                <div className="text-sm text-slate-600">Map showing the searched location (if available)</div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-slate-600">Show map</label>
-                  <input type="checkbox" checked={showMap} onChange={() => setShowMap(v => !v)} className="rounded" />
-                </div>
-              </div>
-
-              {/* Leaflet Map */}
-              {showMap && (
-                <div className="mt-4 h-64 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-                  <MapContainer center={[lat, lon]} zoom={10} style={{ height: '100%', width: '100%' }}>
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <MapAutoCenter lat={lat} lon={lon} zoom={10} />
-                    <Marker position={[lat, lon]}>
-                      <Popup>
-                        <div className="text-sm">
-                          <div className="font-semibold">{payload.location.name}, {payload.location.country}</div>
-                          <div>{safeRound(getFirstNumeric(payload.weather.current, ['temp'])) ?? '--'}°C • {payload.weather.current.weather?.[0]?.description || 'N/A'}</div>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  </MapContainer>
-                </div>
-              )}
             </div>
 
             {/* Summary Card */}
