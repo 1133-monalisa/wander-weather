@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   LineChart,
@@ -34,6 +34,12 @@ import {
   Zap,
   ChevronRight,
   CheckCircle,
+  Heart,
+  Zap as ZapIcon,
+  Sun,
+  CloudRain,
+  Mountain,
+  Palette,
 } from "lucide-react";
 
 type Daily = {
@@ -42,7 +48,6 @@ type Daily = {
   pop?: number;
   weather: { description: string; code?: number | null }[];
 };
-
 type Current = {
   temp: number | null;
   feels_like?: number | null;
@@ -54,7 +59,6 @@ type Current = {
   timezone_offset?: number;
   weathercode?: number | null;
 };
-
 type Payload = {
   location: {
     name: string;
@@ -69,13 +73,96 @@ type Payload = {
   };
 };
 
+// Mood Theme Definitions
+type Mood = "calm" | "energetic" | "romantic" | "adventurous" | "cozy";
+interface MoodTheme {
+  name: string;
+  icon: React.ElementType;
+  primary: string;
+  secondary: string;
+  bgGradient: string;
+  cardBg: string;
+  text: string;
+  border: string;
+  accent: string;
+  hover: string;
+  buttonHover: string;
+}
+
+const MOOD_THEMES: Record<Mood, MoodTheme> = {
+  calm: {
+    name: "Calm",
+    icon: Cloud,
+    primary: "indigo",
+    secondary: "blue",
+    bgGradient: "from-blue-50 to-indigo-50",
+    cardBg: "bg-white/80 backdrop-blur-sm",
+    text: "text-slate-800",
+    border: "border-slate-200",
+    accent: "indigo-600",
+    hover: "hover:bg-indigo-50",
+    buttonHover: "hover:bg-indigo-700",
+  },
+  energetic: {
+    name: "Energetic",
+    icon: ZapIcon,
+    primary: "yellow",
+    secondary: "orange",
+    bgGradient: "from-orange-50 to-yellow-50",
+    cardBg: "bg-white/90 backdrop-blur-md",
+    text: "text-orange-900",
+    border: "border-orange-200",
+    accent: "yellow-500",
+    hover: "hover:bg-yellow-100",
+    buttonHover: "hover:bg-yellow-600",
+  },
+  romantic: {
+    name: "Romantic",
+    icon: Heart,
+    primary: "pink",
+    secondary: "rose",
+    bgGradient: "from-pink-50 to-rose-50",
+    cardBg: "bg-white/80 backdrop-blur-sm",
+    text: "text-rose-900",
+    border: "border-pink-200",
+    accent: "rose-600",
+    hover: "hover:bg-pink-100",
+    buttonHover: "hover:bg-rose-700",
+  },
+  adventurous: {
+    name: "Adventurous",
+    icon: Mountain,
+    primary: "emerald",
+    secondary: "teal",
+    bgGradient: "from-emerald-50 to-teal-50",
+    cardBg: "bg-white/85 backdrop-blur-md",
+    text: "text-emerald-900",
+    border: "border-emerald-200",
+    accent: "emerald-600",
+    hover: "hover:bg-emerald-100",
+    buttonHover: "hover:bg-emerald-700",
+  },
+  cozy: {
+    name: "Cozy",
+    icon: Sun,
+    primary: "amber",
+    secondary: "orange",
+    bgGradient: "from-amber-50 to-orange-50",
+    cardBg: "bg-white/90 backdrop-blur-sm",
+    text: "text-amber-900",
+    border: "border-amber-200",
+    accent: "amber-600",
+    hover: "hover:bg-amber-100",
+    buttonHover: "hover:bg-amber-700",
+  },
+};
+
 export default function Page() {
-  const [currentView, setCurrentView] = useState<
-    "landing" | "app" | "login" | "register"
-  >("landing");
+  const [currentView, setCurrentView] = useState<"landing" | "app" | "login" | "register">("landing");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mood, setMood] = useState<Mood>("calm");
 
   // App state
   const [query, setQuery] = useState("");
@@ -94,6 +181,22 @@ export default function Page() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Load mood from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("userMood") as Mood | null;
+    if (saved && MOOD_THEMES[saved]) {
+      setMood(saved);
+    }
+  }, []);
+
+  // Save mood
+  const changeMood = (newMood: Mood) => {
+    setMood(newMood);
+    localStorage.setItem("userMood", newMood);
+  };
+
+  const theme = MOOD_THEMES[mood];
+
   function sanitizeSuggestion(raw: any) {
     if (raw === undefined || raw === null) return null;
     let text = typeof raw === "string" ? raw : String(raw);
@@ -111,7 +214,6 @@ export default function Page() {
     setSuggestionLoading(true);
     setSuggestionError(null);
     setSuggestionRaw(null);
-
     try {
       const body = JSON.stringify(weatherPayload);
       const res = await fetch("/api/suggestion", {
@@ -119,7 +221,6 @@ export default function Page() {
         headers: { "Content-Type": "application/json" },
         body,
       });
-
       const text = await res.text();
       let data: any;
       try {
@@ -127,12 +228,10 @@ export default function Page() {
       } catch {
         data = text;
       }
-
       if (!res.ok) {
         const msg = typeof data === "string" ? data : JSON.stringify(data);
         throw new Error(msg);
       }
-
       const raw = (data && (data.suggestion ?? data)) || "";
       setSuggestionRaw(sanitizeSuggestion(raw));
     } catch (err: any) {
@@ -153,7 +252,6 @@ export default function Page() {
     setPayload(null);
     setSuggestionRaw(null);
     setSuggestionError(null);
-
     try {
       const res = await fetch(
         `/api/weather?q=${encodeURIComponent(query.trim())}`
@@ -169,7 +267,6 @@ export default function Page() {
         const msg = typeof data === "string" ? data : JSON.stringify(data);
         throw new Error(msg);
       }
-
       const newPayload = data as Payload;
       setPayload(newPayload);
       window.scrollTo({ top: 300, behavior: "smooth" });
@@ -223,13 +320,10 @@ export default function Page() {
 
   function extractSections(raw: string | null) {
     if (!raw) return { order: [], sections: {} as Record<string, string> };
-
     const sections: Record<string, string> = {};
     const order: string[] = [];
-
     const labelRegex =
       /\*\*(.+?)\*\*\s*[:\-–—]?\s*([\s\S]*?)(?=(\*\*.+?\*\*\s*[:\-–—]?\s*)|$)/g;
-
     let match;
     while ((match = labelRegex.exec(raw)) !== null) {
       const label = match[1].trim();
@@ -241,7 +335,6 @@ export default function Page() {
         sections[label] += "\n\n" + content;
       }
     }
-
     if (order.length === 0) {
       const blocks = raw
         .split(/\n{2,}/)
@@ -258,7 +351,6 @@ export default function Page() {
         });
       }
     }
-
     return { order, sections };
   }
 
@@ -312,7 +404,6 @@ export default function Page() {
     weather: Payload | null
   ): string {
     if (!raw || !weather) return "";
-
     const slice = weather.weather.daily.slice(0, 7);
     const avgTemp =
       slice.reduce((sum, d) => sum + (d.temp.day || 0), 0) /
@@ -322,14 +413,12 @@ export default function Page() {
     const avgRain =
       slice.reduce((sum, d) => sum + (d.pop || 0), 0) /
       Math.max(slice.length, 1);
-
     let summary = `**Weather Summary:** `;
     if (Number.isFinite(minTemp) && Number.isFinite(maxTemp)) {
       summary += `Expect ${Math.round(minTemp)}°C to ${Math.round(
         maxTemp
       )}°C over the next 7 days. `;
     }
-
     if (avgRain > 0.5) {
       summary += `High chance of rain — pack waterproof gear. `;
     } else if (avgRain > 0.3) {
@@ -337,7 +426,6 @@ export default function Page() {
     } else {
       summary += `Generally dry — great for outdoor activities. `;
     }
-
     if (avgTemp > 20) {
       summary += `Warm and pleasant overall.`;
     } else if (avgTemp > 15) {
@@ -345,7 +433,6 @@ export default function Page() {
     } else {
       summary += `Cooler — pack warm layers.`;
     }
-
     return summary;
   }
 
@@ -387,134 +474,162 @@ export default function Page() {
     setCurrentView("landing");
   };
 
-  // Landing Page View
-  if (currentView === "landing") {
-    return (
-      <div className="min-h-screen bg-white">
-        {/* Navigation */}
-        <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-3">
-                <div className="bg-indigo-600 text-white rounded-lg p-2 shadow-md">
-                  <svg
-                    className="w-6 h-6"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden
-                  >
-                    <path
-                      d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-slate-900">
-                    Wander Weather
-                  </h1>
-                </div>
-              </div>
+  // Mood Selector Component
+  const MoodSelector = () => (
+    <div className="flex items-center gap-2">
+      <Palette className={`w-5 h-5 ${theme.text} opacity-70`} />
+      <div className="flex gap-1 bg-white/80 backdrop-blur rounded-lg p-1 shadow-sm">
+        {Object.entries(MOOD_THEMES).map(([key, m]) => {
+          const Icon = m.icon;
+          const isActive = mood === key;
+          return (
+            <button
+              key={key}
+              onClick={() => changeMood(key as Mood)}
+              className={`p-2 rounded-md transition-all duration-200 ${
+                isActive
+                  ? `bg-${m.accent} text-white shadow-md scale-110`
+                  : `hover:bg-${m.secondary}-100 text-${m.primary}-600`
+              }`}
+              title={m.name}
+            >
+              <Icon className="w-4 h-4" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
-              <div className="hidden md:flex items-center gap-6">
-                <a
-                  href="#features"
-                  className="text-slate-700 hover:text-slate-900 font-medium transition-colors"
-                >
+  // Shared Navigation
+  const Navigation = () => (
+    <nav className={`fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b ${theme.border}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-3">
+            <div className={`bg-${theme.accent} text-white rounded-lg p-2 shadow-md`}>
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 className={`text-xl font-bold ${theme.text}`}>
+                Wander Weather
+              </h1>
+            </div>
+          </div>
+
+          <div className="hidden md:flex items-center gap-6">
+            {currentView === "landing" && (
+              <>
+                <a href="#features" className={`${theme.text} hover:opacity-70 font-medium transition`}>
                   Features
                 </a>
-                <a
-                  href="#how-it-works"
-                  className="text-slate-700 hover:text-slate-900 font-medium transition-colors"
-                >
+                <a href="#how-it-works" className={`${theme.text} hover:opacity-70 font-medium transition`}>
                   How it Works
                 </a>
-                <a
-                  href="#testimonials"
-                  className="text-slate-700 hover:text-slate-900 font-medium transition-colors"
-                >
+                <a href="#testimonials" className={`${theme.text} hover:opacity-70 font-medium transition`}>
                   Testimonials
                 </a>
+              </>
+            )}
+            <MoodSelector />
+            {isLoggedIn ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <User className={`w-5 h-5 ${theme.text}`} />
+                  <span className={`font-medium ${theme.text}`}>{userName}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className={`flex items-center gap-2 px-4 py-2 ${theme.text} ${theme.hover} rounded-lg transition-all`}
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              <>
                 <button
                   onClick={() => setCurrentView("login")}
-                  className="px-5 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+                  className={`px-5 py-2 bg-${theme.accent} text-white rounded-lg font-medium ${theme.buttonHover} transition-all`}
                 >
                   Sign In
                 </button>
                 <button
                   onClick={() => setCurrentView("app")}
-                  className="px-5 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-lg font-medium hover:bg-indigo-50 transition-all"
+                  className={`px-5 py-2 bg-white text-${theme.accent} border border-${theme.accent} rounded-lg font-medium ${theme.hover} transition-all`}
                 >
                   Try Demo
                 </button>
-              </div>
-
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-lg hover:bg-slate-100"
-              >
-                {mobileMenuOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
-              </button>
-            </div>
+              </>
+            )}
           </div>
 
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden bg-white border-t border-slate-200">
-              <div className="px-4 py-3 space-y-2">
-                <a
-                  href="#features"
-                  className="block py-2 text-slate-700 font-medium"
-                >
-                  Features
-                </a>
-                <a
-                  href="#how-it-works"
-                  className="block py-2 text-slate-700 font-medium"
-                >
-                  How it Works
-                </a>
-                <a
-                  href="#testimonials"
-                  className="block py-2 text-slate-700 font-medium"
-                >
-                  Testimonials
-                </a>
-                <button
-                  onClick={() => {
-                    setCurrentView("login");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left py-2 text-indigo-600 font-medium"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView("app");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left py-2 text-indigo-600 font-medium"
-                >
-                  Try Demo
-                </button>
-              </div>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-slate-100"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-t border-slate-200">
+          <div className="px-4 py-3 space-y-2">
+            {currentView === "landing" && (
+              <>
+                <a href="#features" className="block py-2 text-slate-700 font-medium">Features</a>
+                <a href="#how-it-works" className="block py-2 text-slate-700 font-medium">How it Works</a>
+                <a href="#testimonials" className="block py-2 text-slate-700 font-medium">Testimonials</a>
+              </>
+            )}
+            <div className="py-2">
+              <MoodSelector />
             </div>
-          )}
-        </nav>
+            <button
+              onClick={() => {
+                setCurrentView("login");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 text-indigo-600 font-medium"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => {
+                setCurrentView("app");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left py-2 text-indigo-600 font-medium"
+            >
+              Try Demo
+            </button>
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+
+  // Landing Page View
+  if (currentView === "landing") {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} transition-all duration-700`}>
+        <Navigation />
 
         {/* Hero Section */}
         <section className="pt-24 pb-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center">
-              <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">
+              <h1 className={`text-5xl md:text-6xl font-bold ${theme.text} mb-6`}>
                 Travel Smarter with
                 <br />
                 AI-Powered Weather
@@ -527,33 +642,32 @@ export default function Page() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={() => setCurrentView("app")}
-                  className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-all hover:scale-105"
+                  className={`px-8 py-4 bg-${theme.accent} text-white rounded-xl font-semibold text-lg ${theme.buttonHover} transition-all hover:scale-105`}
                 >
                   Start Planning Free
                 </button>
                 <button
                   onClick={() => setCurrentView("register")}
-                  className="px-8 py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all"
+                  className={`px-8 py-4 bg-white text-${theme.accent} border-2 border-${theme.accent} rounded-xl font-semibold text-lg ${theme.hover} transition-all`}
                 >
                   Create Account
                 </button>
               </div>
             </div>
-
             <div className="mt-16 bg-slate-100 rounded-2xl p-8 shadow-inner">
               <div className="bg-white rounded-xl p-6 shadow-lg">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="bg-indigo-600 text-white rounded-lg p-3">
+                  <div className={`bg-${theme.accent} text-white rounded-lg p-3`}>
                     <Search className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-slate-900">
+                    <h3 className={`text-2xl font-bold ${theme.text}`}>
                       Kathmandu, Nepal
                     </h3>
                     <p className="text-slate-600">Current conditions</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <div className="text-5xl font-bold text-slate-900">22°</div>
+                    <div className={`text-5xl font-bold ${theme.text}`}>22°</div>
                     <p className="text-slate-600">Partly Cloudy</p>
                   </div>
                 </div>
@@ -571,7 +685,7 @@ export default function Page() {
                       <p className="text-sm text-slate-600">
                         {item.split(" ")[0]}
                       </p>
-                      <p className="font-semibold text-slate-900">
+                      <p className={`font-semibold ${theme.text}`}>
                         {item.split(" ").slice(1).join(" ")}
                       </p>
                     </div>
@@ -586,14 +700,13 @@ export default function Page() {
         <section id="features" className="py-20 bg-slate-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              <h2 className={`text-4xl font-bold ${theme.text} mb-4`}>
                 Everything You Need for Perfect Trips
               </h2>
               <p className="text-xl text-slate-600">
                 Powerful features designed for modern travelers
               </p>
             </div>
-
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 {
@@ -616,10 +729,10 @@ export default function Page() {
                   key={i}
                   className="bg-white rounded-xl p-8 shadow-sm hover:shadow-lg transition-all"
                 >
-                  <div className="bg-indigo-600 text-white rounded-lg p-3 w-fit mb-6">
+                  <div className={`bg-${theme.accent} text-white rounded-lg p-3 w-fit mb-6`}>
                     <feature.icon className="w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                  <h3 className={`text-2xl font-bold ${theme.text} mb-3`}>
                     {feature.title}
                   </h3>
                   <p className="text-slate-600">{feature.desc}</p>
@@ -633,33 +746,32 @@ export default function Page() {
         <section id="how-it-works" className="py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              <h2 className={`text-4xl font-bold ${theme.text} mb-4`}>
                 How It Works
               </h2>
               <p className="text-xl text-slate-600">
                 Get started in three simple steps
               </p>
             </div>
-
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 {
                   step: "1",
                   title: "Enter Destination",
                   desc: "Type any city or location worldwide",
-                  color: "bg-indigo-600",
+                  color: `bg-${theme.accent}`,
                 },
                 {
                   step: "2",
                   title: "Get Forecast",
                   desc: "View detailed 7-day weather with charts",
-                  color: "bg-indigo-600",
+                  color: `bg-${theme.accent}`,
                 },
                 {
                   step: "3",
                   title: "Plan Smart",
                   desc: "Receive AI-powered travel recommendations",
-                  color: "bg-indigo-600",
+                  color: `bg-${theme.accent}`,
                 },
               ].map((item, i) => (
                 <div key={i} className="text-center">
@@ -668,7 +780,7 @@ export default function Page() {
                   >
                     {item.step}
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-3">
+                  <h3 className={`text-xl font-bold ${theme.text} mb-3`}>
                     {item.title}
                   </h3>
                   <p className="text-slate-600">{item.desc}</p>
@@ -682,14 +794,13 @@ export default function Page() {
         <section id="testimonials" className="py-20 bg-slate-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              <h2 className={`text-4xl font-bold ${theme.text} mb-4`}>
                 Loved by Travelers
               </h2>
               <p className="text-xl text-slate-600">
                 Join thousands who plan better trips
               </p>
             </div>
-
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 {
@@ -719,7 +830,7 @@ export default function Page() {
                   </div>
                   <p className="text-slate-700 mb-6">"{t.text}"</p>
                   <div>
-                    <p className="font-semibold text-slate-900">{t.name}</p>
+                    <p className={`font-semibold ${theme.text}`}>{t.name}</p>
                     <p className="text-sm text-slate-600">{t.role}</p>
                   </div>
                 </div>
@@ -729,12 +840,12 @@ export default function Page() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-indigo-600">
+        <section className={`py-20 bg-${theme.accent}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-4xl font-bold text-white mb-6">
               Ready to Travel Smarter?
             </h2>
-            <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
               Join thousands of travelers who never let weather ruin their
               plans.
             </p>
@@ -752,7 +863,7 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="bg-indigo-600 text-white rounded-lg p-2">
+                <div className={`bg-${theme.accent} text-white rounded-lg p-2`}>
                   <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
                     <path
                       d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
@@ -763,7 +874,7 @@ export default function Page() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">
+                <h3 className={`text-xl font-bold ${theme.text}`}>
                   Wander Weather
                 </h3>
               </div>
@@ -783,11 +894,11 @@ export default function Page() {
   // Login View
   if (currentView === "login") {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center px-4`}>
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
-              <div className="bg-indigo-600 text-white rounded-lg p-3">
+              <div className={`bg-${theme.accent} text-white rounded-lg p-3`}>
                 <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
@@ -799,18 +910,17 @@ export default function Page() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            <h1 className={`text-3xl font-bold ${theme.text} mb-2`}>
               Welcome Back
             </h1>
             <p className="text-slate-600">
               Sign in to continue planning your trips
             </p>
           </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className={`${theme.cardBg} rounded-xl shadow-lg p-8 border ${theme.border}`}>
             <form onSubmit={handleLogin} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
                   Email Address
                 </label>
                 <input
@@ -821,9 +931,8 @@ export default function Page() {
                   placeholder="you@example.com"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
                   Password
                 </label>
                 <input
@@ -834,37 +943,33 @@ export default function Page() {
                   placeholder="••••••••"
                 />
               </div>
-
               {authError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   {authError}
                 </div>
               )}
-
               <button
                 type="submit"
-                className="w-full py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+                className={`w-full py-3 bg-${theme.accent} text-white rounded-lg font-medium ${theme.buttonHover} transition-all`}
               >
                 Sign In
               </button>
             </form>
-
             <div className="mt-6 text-center">
               <p className="text-sm text-slate-600">
                 Don't have an account?{" "}
                 <button
                   onClick={() => setCurrentView("register")}
-                  className="font-medium text-indigo-600 hover:underline"
+                  className={`font-medium text-${theme.accent} hover:underline`}
                 >
                   Sign up
                 </button>
               </p>
             </div>
-
             <div className="mt-6">
               <button
                 onClick={() => setCurrentView("app")}
-                className="w-full py-3 bg-white text-indigo-600 border border-indigo-600 rounded-lg font-medium hover:bg-indigo-50 transition-all"
+                className={`w-full py-3 bg-white text-${theme.accent} border border-${theme.accent} rounded-lg font-medium ${theme.hover} transition-all`}
               >
                 Continue as Guest
               </button>
@@ -878,11 +983,11 @@ export default function Page() {
   // Register View
   if (currentView === "register") {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center px-4`}>
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
-              <div className="bg-indigo-600 text-white rounded-lg p-3">
+              <div className={`bg-${theme.accent} text-white rounded-lg p-3`}>
                 <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
@@ -894,16 +999,15 @@ export default function Page() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            <h1 className={`text-3xl font-bold ${theme.text} mb-2`}>
               Create Account
             </h1>
             <p className="text-slate-600">Start planning smarter trips today</p>
           </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className={`${theme.cardBg} rounded-xl shadow-lg p-8 border ${theme.border}`}>
             <form onSubmit={handleRegister} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
                   Full Name
                 </label>
                 <input
@@ -914,9 +1018,8 @@ export default function Page() {
                   placeholder="John Doe"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
                   Email Address
                 </label>
                 <input
@@ -927,9 +1030,8 @@ export default function Page() {
                   placeholder="you@example.com"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
                   Password
                 </label>
                 <input
@@ -940,27 +1042,24 @@ export default function Page() {
                   placeholder="••••••••"
                 />
               </div>
-
               {authError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   {authError}
                 </div>
               )}
-
               <button
                 type="submit"
-                className="w-full py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+                className={`w-full py-3 bg-${theme.accent} text-white rounded-lg font-medium ${theme.buttonHover} transition-all`}
               >
                 Create Account
               </button>
             </form>
-
             <div className="mt-6 text-center">
               <p className="text-sm text-slate-600">
                 Already have an account?{" "}
                 <button
                   onClick={() => setCurrentView("login")}
-                  className="font-medium text-indigo-600 hover:underline"
+                  className={`font-medium text-${theme.accent} hover:underline`}
                 >
                   Sign in
                 </button>
@@ -974,75 +1073,13 @@ export default function Page() {
 
   // Main App View
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header with Auth */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-indigo-600 text-white rounded-lg p-2 shadow-md">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">
-                  Wander Weather
-                </h1>
-                <p className="text-sm text-slate-600">
-                  Weather-informed travel planning
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              {isLoggedIn ? (
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <User className="w-5 h-5 text-slate-600" />
-                    <span className="font-medium text-slate-900">
-                      {userName}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setCurrentView("login")}
-                    className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg font-medium transition-all"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => setCurrentView("register")}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
-                  >
-                    Sign Up
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} transition-all duration-700`}>
+      <Navigation />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 transition-all duration-300 hover:shadow-md">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6 mb-8 transition-all duration-300 hover:shadow-md`}>
+          <h2 className={`text-lg font-semibold ${theme.text} mb-4`}>
             Plan your trip with weather insights
           </h2>
           <div className="flex gap-3">
@@ -1056,7 +1093,7 @@ export default function Page() {
             />
             <button
               onClick={handleSearch}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
+              className={`px-6 py-3 bg-${theme.accent} text-white rounded-lg font-medium ${theme.buttonHover} disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95`}
               disabled={loading}
             >
               {loading ? "Searching..." : "Search"}
@@ -1077,7 +1114,7 @@ export default function Page() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 rounded-full mb-4">
               <MapPin className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            <h3 className={`text-lg font-semibold ${theme.text} mb-2`}>
               Search for a destination
             </h3>
             <p className="text-slate-600">
@@ -1089,10 +1126,10 @@ export default function Page() {
         {payload && (
           <div className="space-y-6 animate-fade-in">
             {/* Current Weather Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 transition-all duration-300 hover:shadow-md">
+            <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6 transition-all duration-300 hover:shadow-md`}>
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                  <h2 className={`text-2xl font-bold ${theme.text} flex items-center gap-2`}>
                     <Navigation className="w-6 h-6" />
                     {payload.location.name}
                     {payload.location.state && `, ${payload.location.state}`}
@@ -1100,7 +1137,7 @@ export default function Page() {
                   <p className="text-slate-600">{payload.location.country}</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-5xl font-bold text-slate-900">
+                  <div className={`text-5xl font-bold ${theme.text}`}>
                     {safeRound(
                       getFirstNumeric(payload.weather.current, ["temp"])
                     ) ?? "--"}
@@ -1111,14 +1148,13 @@ export default function Page() {
                   </p>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-slate-50 rounded-lg transition-all hover:bg-slate-100">
                   <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
                     <ThermometerSun className="w-4 h-4" />
                     <span>Feels like</span>
                   </div>
-                  <p className="text-xl font-semibold text-slate-900">
+                  <p className={`text-xl font-semibold ${theme.text}`}>
                     {safeRound(
                       getFirstNumeric(payload.weather.current, [
                         "feels_like",
@@ -1133,7 +1169,7 @@ export default function Page() {
                     <Droplets className="w-4 h-4" />
                     <span>Humidity</span>
                   </div>
-                  <p className="text-xl font-semibold text-slate-900">
+                  <p className={`text-xl font-semibold ${theme.text}`}>
                     {safeRound(
                       getFirstNumeric(payload.weather.current, [
                         "humidity",
@@ -1149,7 +1185,7 @@ export default function Page() {
                     <Wind className="w-4 h-4" />
                     <span>Wind Speed</span>
                   </div>
-                  <p className="text-xl font-semibold text-slate-900">
+                  <p className={`text-xl font-semibold ${theme.text}`}>
                     {safeRound(
                       getFirstNumeric(payload.weather.current, [
                         "wind_speed",
@@ -1164,7 +1200,7 @@ export default function Page() {
                     <Sunrise className="w-4 h-4" />
                     <span>Sun Times</span>
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className={`text-sm font-semibold ${theme.text}`}>
                     {formatTime(
                       payload.weather.current.sunrise,
                       payload.weather.current.timezone_offset
@@ -1181,13 +1217,13 @@ export default function Page() {
 
             {/* Summary Card */}
             {summary && (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 transition-all duration-300 hover:shadow-md">
+              <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6 transition-all duration-300 hover:shadow-md`}>
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+                  <div className={`flex-shrink-0 w-10 h-10 bg-${theme.accent} rounded-lg flex items-center justify-center`}>
                     <Cloud className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    <h3 className={`text-lg font-semibold ${theme.text} mb-2`}>
                       Quick Summary
                     </h3>
                     <div className="prose prose-sm max-w-none text-slate-700">
@@ -1199,8 +1235,8 @@ export default function Page() {
             )}
 
             {/* 7-Day Detailed Forecast Cards */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+            <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6`}>
+              <h3 className={`text-lg font-semibold ${theme.text} mb-6 flex items-center gap-2`}>
                 <Calendar className="w-5 h-5" />
                 7-Day Detailed Forecast
               </h3>
@@ -1211,22 +1247,20 @@ export default function Page() {
                     className="p-4 bg-slate-50 rounded-lg border border-slate-200 transition-all hover:shadow-md hover:scale-105 duration-200"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className={`text-sm font-semibold ${theme.text}`}>
                         {formatDate(d.dt)}
                       </div>
                       <div>{weatherIcon(d.weather?.[0]?.code)}</div>
                     </div>
-
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-600">
                           Temperature
                         </span>
-                        <span className="text-lg font-bold text-slate-900">
+                        <span className={`text-lg font-bold ${theme.text}`}>
                           {safeRound(d.temp.day) ?? "--"}°C
                         </span>
                       </div>
-
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-red-600">
                           Max: {safeRound(d.temp.max) ?? "--"}°
@@ -1235,12 +1269,10 @@ export default function Page() {
                           Min: {safeRound(d.temp.min) ?? "--"}°
                         </span>
                       </div>
-
                       <div className="flex items-center gap-1 text-xs text-slate-600 pt-2 border-t border-slate-200">
                         <Umbrella className="w-3 h-3" />
                         <span>Rain: {Math.round((d.pop ?? 0) * 100)}%</span>
                       </div>
-
                       <div className="text-xs text-slate-600 capitalize pt-1">
                         {d.weather?.[0]?.description || "N/A"}
                       </div>
@@ -1251,8 +1283,8 @@ export default function Page() {
             </div>
 
             {/* 7-Day Temperature Chart */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-6">
+            <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6`}>
+              <h3 className={`text-lg font-semibold ${theme.text} mb-6`}>
                 Temperature Trends
               </h3>
               <ResponsiveContainer width="100%" height={300}>
@@ -1348,10 +1380,10 @@ export default function Page() {
             </div>
 
             {/* AI Suggestions */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6`}>
               <div className="flex items-center gap-2 mb-4">
                 <svg
-                  className="w-5 h-5 text-indigo-600"
+                  className={`w-5 h-5 text-${theme.accent}`}
                   viewBox="0 0 24 24"
                   fill="none"
                 >
@@ -1363,18 +1395,16 @@ export default function Page() {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className={`text-lg font-semibold ${theme.text}`}>
                   AI Travel Insights
                 </h3>
               </div>
-
               {suggestionLoading && (
                 <div className="flex items-center gap-3 text-slate-600 py-4">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
                   <span>Generating personalized suggestions...</span>
                 </div>
               )}
-
               {suggestionError && (
                 <div
                   role="alert"
@@ -1383,27 +1413,24 @@ export default function Page() {
                   {suggestionError}
                 </div>
               )}
-
               {!suggestionLoading && !suggestionError && !suggestionRaw && (
                 <div className="text-slate-600">
                   Suggestions will appear here once the AI finishes analyzing
                   the forecast.
                 </div>
               )}
-
               {!suggestionLoading && !suggestionError && suggestionRaw && (
                 <div className="space-y-4">
                   <div className="text-xs text-slate-500">
                     AI suggestion (short & scannable):
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {sectionsOrder.map((label) => (
                       <div
                         key={label}
                         className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm"
                       >
-                        <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                        <h4 className={`font-semibold ${theme.text} mb-2 flex items-center gap-2`}>
                           <svg
                             className="w-4 h-4"
                             viewBox="0 0 24 24"
@@ -1432,7 +1459,7 @@ export default function Page() {
         )}
       </main>
 
-      <footer className="border-t border-slate-200 mt-16">
+      <footer className={`border-t ${theme.border} mt-16`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <p className="text-center text-sm text-slate-600">
             Team Wander Weather — Prativa Secondary School
