@@ -1,195 +1,70 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from "recharts";
-import {
-  Cloud,
-  Droplets,
-  Wind,
-  Sunrise,
-  Sunset,
-  ThermometerSun,
-  Calendar,
-  Navigation,
   MapPin,
-  Umbrella,
-  Menu,
-  X,
-  LogOut,
-  User,
-  Search,
-  Star,
-  Globe,
-  Shield,
-  Zap,
-  ChevronRight,
-  CheckCircle,
-  Heart,
-  Zap as ZapIcon,
+  ArrowRight,
+  Utensils,
+  ScrollText,
+  Backpack,
+  Map,
+  CheckCircle2,
+  Circle,
+  Navigation,
+  Sparkles,
+  Thermometer,
+  Calendar,
+  Bot,
   Sun,
-  CloudRain,
-  Mountain,
-  Palette,
+  Landmark,
 } from "lucide-react";
 
-type Daily = {
-  dt: number;
-  temp: { day: number | null; max?: number | null; min?: number | null };
-  pop?: number;
-  weather: { description: string; code?: number | null }[];
-};
-type Current = {
-  temp: number | null;
-  feels_like?: number | null;
-  humidity?: number | null;
-  wind_speed?: number | null;
-  weather: { description: string; code?: number | null }[];
-  sunrise?: number | null;
-  sunset?: number | null;
-  timezone_offset?: number;
-  weathercode?: number | null;
-};
-type Payload = {
-  location: {
-    name: string;
-    country: string;
-    state?: string;
-    lat?: number;
-    lon?: number;
-  };
-  weather: {
-    current: Current;
-    daily: Daily[];
-  };
-};
+import { Mood, MOOD_THEMES } from "@/lib/mood";
+import {
+  SMOOTH_EASE,
+  VIEWPORT_CONFIG,
+  containerVariants,
+  itemVariants,
+  scaleUpVariants,
+} from "@/lib/animation";
+import Navbar from "@/components/landing-page/Navbar";
+import Marquee from "@/components/shared/Marqee";
+import Footer from "@/components/landing-page/Footer";
 
-// Mood Theme Definitions
-type Mood = "calm" | "energetic" | "romantic" | "adventurous" | "cozy";
-interface MoodTheme {
-  name: string;
-  icon: React.ElementType;
-  primary: string;
-  secondary: string;
-  bgGradient: string;
-  cardBg: string;
-  text: string;
-  border: string;
-  accent: string;
-  hover: string;
-  buttonHover: string;
-}
-
-const MOOD_THEMES: Record<Mood, MoodTheme> = {
-  calm: {
-    name: "Calm",
-    icon: Cloud,
-    primary: "indigo",
-    secondary: "blue",
-    bgGradient: "from-blue-50 to-indigo-50",
-    cardBg: "bg-white/80 backdrop-blur-sm",
-    text: "text-slate-800",
-    border: "border-slate-200",
-    accent: "indigo-600",
-    hover: "hover:bg-indigo-50",
-    buttonHover: "hover:bg-indigo-700",
+const AUTHENTIC_IMAGES = [
+  {
+    src: "/images/juju-dhau.jpg",
+    alt: "Juju Dhau (King Curd) from Bhaktapur",
   },
-  energetic: {
-    name: "Energetic",
-    icon: ZapIcon,
-    primary: "yellow",
-    secondary: "orange",
-    bgGradient: "from-orange-50 to-yellow-50",
-    cardBg: "bg-white/90 backdrop-blur-md",
-    text: "text-orange-900",
-    border: "border-orange-200",
-    accent: "yellow-500",
-    hover: "hover:bg-yellow-100",
-    buttonHover: "hover:bg-yellow-600",
+  {
+    src: "/images/momo.jpg",
+    alt: "Nepali momos and traditional food",
   },
-  romantic: {
-    name: "Romantic",
-    icon: Heart,
-    primary: "pink",
-    secondary: "rose",
-    bgGradient: "from-pink-50 to-rose-50",
-    cardBg: "bg-white/80 backdrop-blur-sm",
-    text: "text-rose-900",
-    border: "border-pink-200",
-    accent: "rose-600",
-    hover: "hover:bg-pink-100",
-    buttonHover: "hover:bg-rose-700",
-  },
-  adventurous: {
-    name: "Adventurous",
-    icon: Mountain,
-    primary: "emerald",
-    secondary: "teal",
-    bgGradient: "from-emerald-50 to-teal-50",
-    cardBg: "bg-white/85 backdrop-blur-md",
-    text: "text-emerald-900",
-    border: "border-emerald-200",
-    accent: "emerald-600",
-    hover: "hover:bg-emerald-100",
-    buttonHover: "hover:bg-emerald-700",
-  },
-  cozy: {
-    name: "Cozy",
-    icon: Sun,
-    primary: "amber",
-    secondary: "orange",
-    bgGradient: "from-amber-50 to-orange-50",
-    cardBg: "bg-white/90 backdrop-blur-sm",
-    text: "text-amber-900",
-    border: "border-amber-200",
-    accent: "amber-600",
-    hover: "hover:bg-amber-100",
-    buttonHover: "hover:bg-amber-700",
-  },
-};
+];
 
 export default function Page() {
-  const [currentView, setCurrentView] = useState<"landing" | "app" | "login" | "register">("landing");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mood, setMood] = useState<Mood>("calm");
+  const [isMounted, setIsMounted] = useState(false);
 
-  // App state
-  const [query, setQuery] = useState("");
-  const [payload, setPayload] = useState<Payload | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [suggestionRaw, setSuggestionRaw] = useState<string | null>(null);
-  const [suggestionLoading, setSuggestionLoading] = useState(false);
-  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [authenticIndex, setAuthenticIndex] = useState(0);
 
-  // Auth form states
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  // Load mood from localStorage
   useEffect(() => {
+    setIsMounted(true);
     const saved = localStorage.getItem("userMood") as Mood | null;
-    if (saved && MOOD_THEMES[saved]) {
-      setMood(saved);
-    }
+    if (saved && MOOD_THEMES[saved]) setMood(saved);
   }, []);
 
-  // Save mood
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAuthenticIndex((prev) => (prev + 1) % AUTHENTIC_IMAGES.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const changeMood = (newMood: Mood) => {
     setMood(newMood);
     localStorage.setItem("userMood", newMood);
@@ -197,1291 +72,827 @@ export default function Page() {
 
   const theme = MOOD_THEMES[mood];
 
-  function sanitizeSuggestion(raw: any) {
-    if (raw === undefined || raw === null) return null;
-    let text = typeof raw === "string" ? raw : String(raw);
-    text = text.replace(/\r\n/g, "\n").replace(/\*\s*\*/g, "**");
-    text = text.replace(/\n{3,}/g, "\n\n");
-    text = text
-      .split("\n")
-      .map((l) => l.trim())
-      .join("\n");
-    text = text.replace(/\u200B/g, "");
-    return text.trim();
-  }
+  if (!isMounted) return null;
 
-  async function fetchSuggestion(weatherPayload: Payload) {
-    setSuggestionLoading(true);
-    setSuggestionError(null);
-    setSuggestionRaw(null);
-    try {
-      const body = JSON.stringify(weatherPayload);
-      const res = await fetch("/api/suggestion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-      const text = await res.text();
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = text;
-      }
-      if (!res.ok) {
-        const msg = typeof data === "string" ? data : JSON.stringify(data);
-        throw new Error(msg);
-      }
-      const raw = (data && (data.suggestion ?? data)) || "";
-      setSuggestionRaw(sanitizeSuggestion(raw));
-    } catch (err: any) {
-      console.error("Suggestion fetch error:", err);
-      setSuggestionError(err?.message || "Failed to fetch trip suggestion.");
-    } finally {
-      setSuggestionLoading(false);
-    }
-  }
+  return (
+    <div
+      className={`min-h-screen ${theme.pageBg} transition-colors duration-700 antialiased font-sans selection:${theme.accentBg} selection:text-white`}
+    >
+      <Navbar mood={mood} theme={theme} onChangeMood={changeMood} />
 
-  async function handleSearch() {
-    if (!query.trim()) {
-      setError("Please enter a destination");
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    setPayload(null);
-    setSuggestionRaw(null);
-    setSuggestionError(null);
-    try {
-      const res = await fetch(
-        `/api/weather?q=${encodeURIComponent(query.trim())}`
-      );
-      const text = await res.text();
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = text;
-      }
-      if (!res.ok) {
-        const msg = typeof data === "string" ? data : JSON.stringify(data);
-        throw new Error(msg);
-      }
-      const newPayload = data as Payload;
-      setPayload(newPayload);
-      window.scrollTo({ top: 300, behavior: "smooth" });
-      fetchSuggestion(newPayload);
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.message || "Failed to fetch weather");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function safeRound(n: number | null | undefined) {
-    return typeof n === "number" && !Number.isNaN(n) ? Math.round(n) : null;
-  }
-
-  function getFirstNumeric(
-    obj: any,
-    keys: string[],
-    fallback: number | null = null
-  ) {
-    if (!obj) return fallback;
-    for (const k of keys) {
-      const v = obj[k];
-      if (typeof v === "number" && !Number.isNaN(v)) return v;
-      if (typeof v === "string") {
-        const parsed = Number(v);
-        if (!Number.isNaN(parsed)) return parsed;
-      }
-    }
-    return fallback;
-  }
-
-  function formatTime(ts?: number | null, tzOffset?: number) {
-    if (!ts) return "-";
-    const d = new Date((ts + (tzOffset ?? 0)) * 1000);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
-  function formatDate(ts?: number, short?: boolean) {
-    if (!ts) return "";
-    const d = new Date(ts * 1000);
-    return short
-      ? d.toLocaleDateString(undefined, { weekday: "short" })
-      : d.toLocaleDateString(undefined, {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        });
-  }
-
-  function extractSections(raw: string | null) {
-    if (!raw) return { order: [], sections: {} as Record<string, string> };
-    const sections: Record<string, string> = {};
-    const order: string[] = [];
-    const labelRegex =
-      /\*\*(.+?)\*\*\s*[:\-–—]?\s*([\s\S]*?)(?=(\*\*.+?\*\*\s*[:\-–—]?\s*)|$)/g;
-    let match;
-    while ((match = labelRegex.exec(raw)) !== null) {
-      const label = match[1].trim();
-      const content = match[2].trim();
-      if (!sections[label]) {
-        sections[label] = content;
-        order.push(label);
-      } else {
-        sections[label] += "\n\n" + content;
-      }
-    }
-    if (order.length === 0) {
-      const blocks = raw
-        .split(/\n{2,}/)
-        .map((b) => b.trim())
-        .filter(Boolean);
-      if (blocks.length === 1) {
-        sections["Recommendations"] = blocks[0];
-        order.push("Recommendations");
-      } else {
-        blocks.forEach((b, i) => {
-          const key = i === 0 ? "Overview" : `Section ${i + 1}`;
-          sections[key] = b;
-          order.push(key);
-        });
-      }
-    }
-    return { order, sections };
-  }
-
-  function weatherIcon(code?: number | null) {
-    if (code === null || code === undefined)
-      return <Cloud className="w-6 h-6" />;
-    if (code === 0 || code === 1)
-      return (
-        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
-          <path
-            d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      );
-    if (code === 2 || code === 3 || (code >= 45 && code <= 48))
-      return <Cloud className="w-6 h-6" />;
-    if (
-      (code >= 51 && code <= 67) ||
-      (code >= 80 && code <= 82) ||
-      (code >= 61 && code <= 65)
-    )
-      return <Droplets className="w-6 h-6" />;
-    if ((code >= 71 && code <= 86) || code === 77)
-      return <span className="text-xl">snowflake</span>;
-    if (code >= 95 && code <= 99)
-      return <span className="text-xl">lightning</span>;
-    return <Cloud className="w-6 h-6" />;
-  }
-
-  const chartData =
-    payload?.weather.daily.slice(0, 7).map((d) => ({
-      day: formatDate(d.dt, true),
-      fullDate: formatDate(d.dt),
-      temp: safeRound(d.temp.day),
-      max: safeRound(d.temp.max),
-      min: safeRound(d.temp.min),
-      pop: Math.round((d.pop || 0) * 100),
-      desc: d.weather?.[0]?.description || "",
-    })) || [];
-
-  const parsed = extractSections(sanitizeSuggestion(suggestionRaw));
-  const sectionsOrder = parsed.order;
-  const sectionsMap = parsed.sections;
-
-  function generateSummary(
-    raw: string | null,
-    weather: Payload | null
-  ): string {
-    if (!raw || !weather) return "";
-    const slice = weather.weather.daily.slice(0, 7);
-    const avgTemp =
-      slice.reduce((sum, d) => sum + (d.temp.day || 0), 0) /
-      Math.max(slice.length, 1);
-    const maxTemp = Math.max(...slice.map((d) => d.temp.max ?? -Infinity));
-    const minTemp = Math.min(...slice.map((d) => d.temp.min ?? Infinity));
-    const avgRain =
-      slice.reduce((sum, d) => sum + (d.pop || 0), 0) /
-      Math.max(slice.length, 1);
-    let summary = `**Weather Summary:** `;
-    if (Number.isFinite(minTemp) && Number.isFinite(maxTemp)) {
-      summary += `Expect ${Math.round(minTemp)}°C to ${Math.round(
-        maxTemp
-      )}°C over the next 7 days. `;
-    }
-    if (avgRain > 0.5) {
-      summary += `High chance of rain — pack waterproof gear. `;
-    } else if (avgRain > 0.3) {
-      summary += `Moderate rain risk — bring a light rain jacket. `;
-    } else {
-      summary += `Generally dry — great for outdoor activities. `;
-    }
-    if (avgTemp > 20) {
-      summary += `Warm and pleasant overall.`;
-    } else if (avgTemp > 15) {
-      summary += `Mild — light layers recommended.`;
-    } else {
-      summary += `Cooler — pack warm layers.`;
-    }
-    return summary;
-  }
-
-  const summary = generateSummary(sanitizeSuggestion(suggestionRaw), payload);
-
-  // Simulated login/register
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (loginEmail && loginPassword) {
-      setIsLoggedIn(true);
-      setUserName(loginEmail.split("@")[0]);
-      setCurrentView("app");
-      setLoginEmail("");
-      setLoginPassword("");
-    } else {
-      setAuthError("Please fill in all fields");
-    }
-  };
-
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    if (registerName && registerEmail && registerPassword) {
-      setIsLoggedIn(true);
-      setUserName(registerName);
-      setCurrentView("app");
-      setRegisterName("");
-      setRegisterEmail("");
-      setRegisterPassword("");
-    } else {
-      setAuthError("Please fill in all fields");
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserName("");
-    setCurrentView("landing");
-  };
-
-  // Mood Selector Component
-  const MoodSelector = () => (
-    <div className="flex items-center gap-2">
-      <Palette className={`w-5 h-5 ${theme.text} opacity-70`} />
-      <div className="flex gap-1 bg-white/80 backdrop-blur rounded-lg p-1 shadow-sm">
-        {Object.entries(MOOD_THEMES).map(([key, m]) => {
-          const Icon = m.icon;
-          const isActive = mood === key;
-          return (
-            <button
-              key={key}
-              onClick={() => changeMood(key as Mood)}
-              className={`p-2 rounded-md transition-all duration-200 ${
-                isActive
-                  ? `bg-${m.accent} text-white shadow-md scale-110`
-                  : `hover:bg-${m.secondary}-100 text-${m.primary}-600`
-              }`}
-              title={m.name}
+      <main className="pt-20 md:pt-24">
+        {/* HERO SECTION */}
+        <section className="relative px-6 md:px-8 pb-12 overflow-hidden">
+          <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={containerVariants}
+              className="order-1 flex flex-col justify-center"
             >
-              <Icon className="w-4 h-4" />
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // Shared Navigation
-  const Navigation = () => (
-    <nav className={`fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b ${theme.border}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <div className={`bg-${theme.accent} text-white rounded-lg p-2 shadow-md`}>
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              <motion.div
+                variants={itemVariants}
+                className={`inline-flex items-center gap-2 self-start px-3 py-1 rounded-full bg-white border ${theme.border} shadow-sm mb-6`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full animate-pulse ${theme.accentBg}`}
                 />
-              </svg>
-            </div>
-            <div>
-              <h1 className={`text-xl font-bold ${theme.text}`}>
-                Wander Weather
-              </h1>
-            </div>
-          </div>
+                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-500">
+                  AI-Powered Nepal Travel
+                </span>
+              </motion.div>
 
-          <div className="hidden md:flex items-center gap-6">
-            {currentView === "landing" && (
-              <>
-                <a href="#features" className={`${theme.text} hover:opacity-70 font-medium transition`}>
-                  Features
-                </a>
-                <a href="#how-it-works" className={`${theme.text} hover:opacity-70 font-medium transition`}>
-                  How it Works
-                </a>
-                <a href="#testimonials" className={`${theme.text} hover:opacity-70 font-medium transition`}>
-                  Testimonials
-                </a>
-              </>
-            )}
-            <MoodSelector />
-            {isLoggedIn ? (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <User className={`w-5 h-5 ${theme.text}`} />
-                  <span className={`font-medium ${theme.text}`}>{userName}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className={`flex items-center gap-2 px-4 py-2 ${theme.text} ${theme.hover} rounded-lg transition-all`}
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  onClick={() => setCurrentView("login")}
-                  className={`px-5 py-2 bg-${theme.accent} text-white rounded-lg font-medium ${theme.buttonHover} transition-all`}
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => setCurrentView("app")}
-                  className={`px-5 py-2 bg-white text-${theme.accent} border border-${theme.accent} rounded-lg font-medium ${theme.hover} transition-all`}
-                >
-                  Try Demo
-                </button>
-              </>
-            )}
-          </div>
+              <motion.h1
+                variants={itemVariants}
+                className={`text-5xl sm:text-6xl lg:text-[4.2rem] font-bold tracking-tight mb-6 leading-[1.1] ${theme.heading}`}
+              >
+                Experience Nepal, <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-500">
+                  beyond the weather.
+                </span>
+              </motion.h1>
 
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-slate-100"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
+              <motion.p
+                variants={itemVariants}
+                className={`text-lg leading-relaxed mb-8 max-w-lg ${theme.mutedText}`}
+              >
+                Don&apos;t just check the temperature. Ask our AI to plan your
+                trip based on local festivals, hidden temples, authentic Newari
+                food, and the perfect mountain views.
+              </motion.p>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-slate-200">
-          <div className="px-4 py-3 space-y-2">
-            {currentView === "landing" && (
-              <>
-                <a href="#features" className="block py-2 text-slate-700 font-medium">Features</a>
-                <a href="#how-it-works" className="block py-2 text-slate-700 font-medium">How it Works</a>
-                <a href="#testimonials" className="block py-2 text-slate-700 font-medium">Testimonials</a>
-              </>
-            )}
-            <div className="py-2">
-              <MoodSelector />
-            </div>
-            <button
-              onClick={() => {
-                setCurrentView("login");
-                setMobileMenuOpen(false);
-              }}
-              className="w-full text-left py-2 text-indigo-600 font-medium"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView("app");
-                setMobileMenuOpen(false);
-              }}
-              className="w-full text-left py-2 text-indigo-600 font-medium"
-            >
-              Try Demo
-            </button>
-          </div>
-        </div>
-      )}
-    </nav>
-  );
-
-  // Landing Page View
-  if (currentView === "landing") {
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} transition-all duration-700`}>
-        <Navigation />
-
-        {/* Hero Section */}
-        <section className="pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center">
-              <h1 className={`text-5xl md:text-6xl font-bold ${theme.text} mb-6`}>
-                Travel Smarter with
-                <br />
-                AI-Powered Weather
-              </h1>
-              <p className="text-xl text-slate-600 mb-8 max-w-3xl mx-auto">
-                Get precise 7-day forecasts, real-time conditions, and
-                personalized travel recommendations powered by AI. Never let
-                weather ruin your plans again.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={() => setCurrentView("app")}
-                  className={`px-8 py-4 bg-${theme.accent} text-white rounded-xl font-semibold text-lg ${theme.buttonHover} transition-all hover:scale-105`}
+              <motion.div
+                variants={itemVariants}
+                className="flex flex-wrap items-center gap-4"
+              >
+                <Link
+                  href="/auth/register"
+                  className={`h-12 px-8 rounded-full text-white font-semibold text-base shadow-lg shadow-slate-200 hover:shadow-xl transition-all hover:-translate-y-1 flex items-center justify-center ${theme.accentBg}`}
                 >
                   Start Planning Free
+                </Link>
+                <button className="h-12 px-6 rounded-full bg-white border border-slate-200 text-slate-700 font-semibold text-base hover:bg-slate-50 transition-colors flex items-center gap-2 group">
+                  <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-hover:scale-110 transition-transform text-xs">
+                    ▶
+                  </span>
+                  See Pokhara Demo
                 </button>
-                <button
-                  onClick={() => setCurrentView("register")}
-                  className={`px-8 py-4 bg-white text-${theme.accent} border-2 border-${theme.accent} rounded-xl font-semibold text-lg ${theme.hover} transition-all`}
-                >
-                  Create Account
-                </button>
-              </div>
-            </div>
-            <div className="mt-16 bg-slate-100 rounded-2xl p-8 shadow-inner">
-              <div className="bg-white rounded-xl p-6 shadow-lg">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className={`bg-${theme.accent} text-white rounded-lg p-3`}>
-                    <Search className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className={`text-2xl font-bold ${theme.text}`}>
-                      Kathmandu, Nepal
-                    </h3>
-                    <p className="text-slate-600">Current conditions</p>
-                  </div>
-                  <div className="ml-auto text-right">
-                    <div className={`text-5xl font-bold ${theme.text}`}>22°</div>
-                    <p className="text-slate-600">Partly Cloudy</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    "Feels like 24°",
-                    "Humidity 65%",
-                    "Wind 12 km/h",
-                    "Sunrise 6:12 AM",
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className="bg-slate-50 rounded-lg p-3 text-center"
-                    >
-                      <p className="text-sm text-slate-600">
-                        {item.split(" ")[0]}
-                      </p>
-                      <p className={`font-semibold ${theme.text}`}>
-                        {item.split(" ").slice(1).join(" ")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+              </motion.div>
+            </motion.div>
 
-        {/* Features Section */}
-        <section id="features" className="py-20 bg-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className={`text-4xl font-bold ${theme.text} mb-4`}>
-                Everything You Need for Perfect Trips
-              </h2>
-              <p className="text-xl text-slate-600">
-                Powerful features designed for modern travelers
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  icon: Globe,
-                  title: "Global Coverage",
-                  desc: "Real-time weather data from 200,000+ cities worldwide",
-                },
-                {
-                  icon: Zap,
-                  title: "AI Recommendations",
-                  desc: "Smart suggestions based on weather, activities, and preferences",
-                },
-                {
-                  icon: Shield,
-                  title: "Travel Safe",
-                  desc: "Alerts for extreme weather, air quality, and health risks",
-                },
-              ].map((feature, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-xl p-8 shadow-sm hover:shadow-lg transition-all"
-                >
-                  <div className={`bg-${theme.accent} text-white rounded-lg p-3 w-fit mb-6`}>
-                    <feature.icon className="w-6 h-6" />
-                  </div>
-                  <h3 className={`text-2xl font-bold ${theme.text} mb-3`}>
-                    {feature.title}
-                  </h3>
-                  <p className="text-slate-600">{feature.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* How it Works */}
-        <section id="how-it-works" className="py-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className={`text-4xl font-bold ${theme.text} mb-4`}>
-                How It Works
-              </h2>
-              <p className="text-xl text-slate-600">
-                Get started in three simple steps
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  step: "1",
-                  title: "Enter Destination",
-                  desc: "Type any city or location worldwide",
-                  color: `bg-${theme.accent}`,
-                },
-                {
-                  step: "2",
-                  title: "Get Forecast",
-                  desc: "View detailed 7-day weather with charts",
-                  color: `bg-${theme.accent}`,
-                },
-                {
-                  step: "3",
-                  title: "Plan Smart",
-                  desc: "Receive AI-powered travel recommendations",
-                  color: `bg-${theme.accent}`,
-                },
-              ].map((item, i) => (
-                <div key={i} className="text-center">
-                  <div
-                    className={`${item.color} text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mx-auto mb-6`}
-                  >
-                    {item.step}
-                  </div>
-                  <h3 className={`text-xl font-bold ${theme.text} mb-3`}>
-                    {item.title}
-                  </h3>
-                  <p className="text-slate-600">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Testimonials */}
-        <section id="testimonials" className="py-20 bg-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className={`text-4xl font-bold ${theme.text} mb-4`}>
-                Loved by Travelers
-              </h2>
-              <p className="text-xl text-slate-600">
-                Join thousands who plan better trips
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Sarah Chen",
-                  role: "Digital Nomad",
-                  text: "Saved my Bali trip from monsoon season. The AI suggestions were spot-on!",
-                },
-                {
-                  name: "Mike Johnson",
-                  role: "Adventure Photographer",
-                  text: "Finally, weather forecasts I can trust. The temperature charts are incredibly helpful.",
-                },
-                {
-                  name: "Priya Sharma",
-                  role: "Family Traveler",
-                  text: "Perfect for planning with kids. We always know what to pack now.",
-                },
-              ].map((t, i) => (
-                <div key={i} className="bg-white rounded-xl p-8 shadow-sm">
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(5)].map((_, j) => (
-                      <Star
-                        key={j}
-                        className="w-5 h-5 fill-yellow-400 text-yellow-400"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-slate-700 mb-6">"{t.text}"</p>
-                  <div>
-                    <p className={`font-semibold ${theme.text}`}>{t.name}</p>
-                    <p className="text-sm text-slate-600">{t.role}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className={`py-20 bg-${theme.accent}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl font-bold text-white mb-6">
-              Ready to Travel Smarter?
-            </h2>
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-              Join thousands of travelers who never let weather ruin their
-              plans.
-            </p>
-            <button
-              onClick={() => setCurrentView("app")}
-              className="px-8 py-4 bg-white text-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all hover:scale-105"
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1, ease: SMOOTH_EASE }}
+              viewport={{ once: true }}
+              className="relative order-2 h-[450px] lg:h-[500px] w-full"
             >
-              Get Started Free
-            </button>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="bg-white border-t border-slate-200 py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className={`bg-${theme.accent} text-white rounded-lg p-2`}>
-                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+              <div className="absolute inset-0 rounded-[2rem] overflow-hidden shadow-2xl border-[6px] border-white ring-1 ring-slate-200/50 bg-slate-200">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={mood}
+                    initial={{ scale: 1.1, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.7 }}
+                    className="relative w-full h-full"
+                  >
+                    <Image
+                      src={theme.heroImage}
+                      alt={`${mood} mood in Nepal`}
+                      fill
+                      priority={true}
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                     />
-                  </svg>
-                </div>
-                <h3 className={`text-xl font-bold ${theme.text}`}>
-                  Wander Weather
-                </h3>
-              </div>
-              <p className="text-slate-600 mb-8">
-                Team Wander Weather — Prativa Secondary School
-              </p>
-              <p className="text-sm text-slate-500">
-                © 2025 Wander Weather. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </footer>
-      </div>
-    );
-  }
+                  </motion.div>
+                </AnimatePresence>
 
-  // Login View
-  if (currentView === "login") {
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center px-4`}>
-        <div className="max-w-md w-full">
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-6">
-              <div className={`bg-${theme.accent} text-white rounded-lg p-3`}>
-                <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
-            <h1 className={`text-3xl font-bold ${theme.text} mb-2`}>
-              Welcome Back
-            </h1>
-            <p className="text-slate-600">
-              Sign in to continue planning your trips
-            </p>
-          </div>
-          <div className={`${theme.cardBg} rounded-xl shadow-lg p-8 border ${theme.border}`}>
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div>
-                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                  placeholder="you@example.com"
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                  placeholder="••••••••"
-                />
-              </div>
-              {authError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {authError}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
+
+                <div className="absolute top-6 right-6 bg-black/30 backdrop-blur-md text-white px-4 py-1.5 rounded-full border border-white/20 flex items-center gap-2 text-xs font-semibold tracking-wide z-20">
+                  <MapPin className="w-3 h-3" /> NEPAL
                 </div>
-              )}
-              <button
-                type="submit"
-                className={`w-full py-3 bg-${theme.accent} text-white rounded-lg font-medium ${theme.buttonHover} transition-all`}
+              </div>
+
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.8, ease: SMOOTH_EASE }}
+                className="absolute bottom-8 -left-4 md:-left-12 bg-white/95 backdrop-blur-xl p-5 rounded-2xl shadow-2xl w-72 border border-white/50 z-30"
               >
-                Sign In
-              </button>
-            </form>
-            <div className="mt-6 text-center">
-              <p className="text-sm text-slate-600">
-                Don't have an account?{" "}
-                <button
-                  onClick={() => setCurrentView("register")}
-                  className={`font-medium text-${theme.accent} hover:underline`}
-                >
-                  Sign up
-                </button>
-              </p>
-            </div>
-            <div className="mt-6">
-              <button
-                onClick={() => setCurrentView("app")}
-                className={`w-full py-3 bg-white text-${theme.accent} border border-${theme.accent} rounded-lg font-medium ${theme.hover} transition-all`}
-              >
-                Continue as Guest
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Register View
-  if (currentView === "register") {
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center px-4`}>
-        <div className="max-w-md w-full">
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-6">
-              <div className={`bg-${theme.accent} text-white rounded-lg p-3`}>
-                <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
-            <h1 className={`text-3xl font-bold ${theme.text} mb-2`}>
-              Create Account
-            </h1>
-            <p className="text-slate-600">Start planning smarter trips today</p>
-          </div>
-          <div className={`${theme.cardBg} rounded-xl shadow-lg p-8 border ${theme.border}`}>
-            <form onSubmit={handleRegister} className="space-y-6">
-              <div>
-                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={registerName}
-                  onChange={(e) => setRegisterName(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                  placeholder="John Doe"
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={registerEmail}
-                  onChange={(e) => setRegisterEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                  placeholder="you@example.com"
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium ${theme.text} mb-2`}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                  placeholder="••••••••"
-                />
-              </div>
-              {authError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {authError}
-                </div>
-              )}
-              <button
-                type="submit"
-                className={`w-full py-3 bg-${theme.accent} text-white rounded-lg font-medium ${theme.buttonHover} transition-all`}
-              >
-                Create Account
-              </button>
-            </form>
-            <div className="mt-6 text-center">
-              <p className="text-sm text-slate-600">
-                Already have an account?{" "}
-                <button
-                  onClick={() => setCurrentView("login")}
-                  className={`font-medium text-${theme.accent} hover:underline`}
-                >
-                  Sign in
-                </button>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Main App View
-  return (
-    <div className={`min-h-screen bg-gradient-to-br ${theme.bgGradient} transition-all duration-700`}>
-      <Navigation />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Section */}
-        <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6 mb-8 transition-all duration-300 hover:shadow-md`}>
-          <h2 className={`text-lg font-semibold ${theme.text} mb-4`}>
-            Plan your trip with weather insights
-          </h2>
-          <div className="flex gap-3">
-            <input
-              aria-label="Search destination"
-              className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
-              placeholder="Enter a city name (e.g., Paris, Tokyo, New York)"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            />
-            <button
-              onClick={handleSearch}
-              className={`px-6 py-3 bg-${theme.accent} text-white rounded-lg font-medium ${theme.buttonHover} disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95`}
-              disabled={loading}
-            >
-              {loading ? "Searching..." : "Search"}
-            </button>
-          </div>
-          {error && (
-            <div
-              role="alert"
-              className="mt-3 text-sm text-red-600 animate-pulse"
-            >
-              {error}
-            </div>
-          )}
-        </div>
-
-        {!payload && (
-          <div className="text-center py-16 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 rounded-full mb-4">
-              <MapPin className="w-8 h-8 text-slate-400" />
-            </div>
-            <h3 className={`text-lg font-semibold ${theme.text} mb-2`}>
-              Search for a destination
-            </h3>
-            <p className="text-slate-600">
-              Get 7-day weather forecasts and AI-powered travel suggestions
-            </p>
-          </div>
-        )}
-
-        {payload && (
-          <div className="space-y-6 animate-fade-in">
-            {/* Current Weather Card */}
-            <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6 transition-all duration-300 hover:shadow-md`}>
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className={`text-2xl font-bold ${theme.text} flex items-center gap-2`}>
-                    <Navigation className="w-6 h-6" />
-                    {payload.location.name}
-                    {payload.location.state && `, ${payload.location.state}`}
-                  </h2>
-                  <p className="text-slate-600">{payload.location.country}</p>
-                </div>
-                <div className="text-right">
-                  <div className={`text-5xl font-bold ${theme.text}`}>
-                    {safeRound(
-                      getFirstNumeric(payload.weather.current, ["temp"])
-                    ) ?? "--"}
-                    °
-                  </div>
-                  <p className="text-slate-600 capitalize mt-1">
-                    {payload.weather.current.weather?.[0]?.description || "N/A"}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-slate-50 rounded-lg transition-all hover:bg-slate-100">
-                  <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
-                    <ThermometerSun className="w-4 h-4" />
-                    <span>Feels like</span>
-                  </div>
-                  <p className={`text-xl font-semibold ${theme.text}`}>
-                    {safeRound(
-                      getFirstNumeric(payload.weather.current, [
-                        "feels_like",
-                        "temp",
-                      ])
-                    ) ?? "--"}
-                    °C
-                  </p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-lg transition-all hover:bg-slate-100">
-                  <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
-                    <Droplets className="w-4 h-4" />
-                    <span>Humidity</span>
-                  </div>
-                  <p className={`text-xl font-semibold ${theme.text}`}>
-                    {safeRound(
-                      getFirstNumeric(payload.weather.current, [
-                        "humidity",
-                        "hum",
-                        "relative_humidity",
-                      ])
-                    ) ?? "--"}
-                    %
-                  </p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-lg transition-all hover:bg-slate-100">
-                  <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
-                    <Wind className="w-4 h-4" />
-                    <span>Wind Speed</span>
-                  </div>
-                  <p className={`text-xl font-semibold ${theme.text}`}>
-                    {safeRound(
-                      getFirstNumeric(payload.weather.current, [
-                        "wind_speed",
-                        "wind",
-                      ])
-                    ) ?? "--"}{" "}
-                    m/s
-                  </p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-lg transition-all hover:bg-slate-100">
-                  <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
-                    <Sunrise className="w-4 h-4" />
-                    <span>Sun Times</span>
-                  </div>
-                  <p className={`text-sm font-semibold ${theme.text}`}>
-                    {formatTime(
-                      payload.weather.current.sunrise,
-                      payload.weather.current.timezone_offset
-                    )}{" "}
-                    /{" "}
-                    {formatTime(
-                      payload.weather.current.sunset,
-                      payload.weather.current.timezone_offset
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Summary Card */}
-            {summary && (
-              <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6 transition-all duration-300 hover:shadow-md`}>
-                <div className="flex items-start gap-3">
-                  <div className={`flex-shrink-0 w-10 h-10 bg-${theme.accent} rounded-lg flex items-center justify-center`}>
-                    <Cloud className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className={`text-lg font-semibold ${theme.text} mb-2`}>
-                      Quick Summary
-                    </h3>
-                    <div className="prose prose-sm max-w-none text-slate-700">
-                      <ReactMarkdown>{summary}</ReactMarkdown>
-                    </div>
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Live Forecast
+                  </span>
+                  <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />{" "}
+                    Excellent
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* 7-Day Detailed Forecast Cards */}
-            <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6`}>
-              <h3 className={`text-lg font-semibold ${theme.text} mb-6 flex items-center gap-2`}>
-                <Calendar className="w-5 h-5" />
-                7-Day Detailed Forecast
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {payload.weather.daily.slice(0, 7).map((d, i) => (
+                <div className="flex items-end justify-between mb-4">
+                  <div>
+                    <h3 className="text-3xl font-bold text-slate-900">22°C</h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Lakeside, Pokhara
+                    </p>
+                  </div>
                   <div
-                    key={i}
-                    className="p-4 bg-slate-50 rounded-lg border border-slate-200 transition-all hover:shadow-md hover:scale-105 duration-200"
+                    className={`p-2 rounded-full ${theme.softAccentBg} ${theme.accentText}`}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={`text-sm font-semibold ${theme.text}`}>
-                        {formatDate(d.dt)}
-                      </div>
-                      <div>{weatherIcon(d.weather?.[0]?.code)}</div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-600">
-                          Temperature
-                        </span>
-                        <span className={`text-lg font-bold ${theme.text}`}>
-                          {safeRound(d.temp.day) ?? "--"}°C
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-red-600">
-                          Max: {safeRound(d.temp.max) ?? "--"}°
-                        </span>
-                        <span className="text-blue-600">
-                          Min: {safeRound(d.temp.min) ?? "--"}°
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-slate-600 pt-2 border-t border-slate-200">
-                        <Umbrella className="w-3 h-3" />
-                        <span>Rain: {Math.round((d.pop ?? 0) * 100)}%</span>
-                      </div>
-                      <div className="text-xs text-slate-600 capitalize pt-1">
-                        {d.weather?.[0]?.description || "N/A"}
-                      </div>
-                    </div>
+                    <theme.icon className="w-6 h-6" />
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">
+                      AI Suggestion
+                    </p>
+                    <p className="text-xs font-semibold text-slate-800 leading-snug">
+                      &quot;Perfect visibility for World Peace Pagoda sunset
+                      hike. Pack a light windbreaker.&quot;
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
 
-            {/* 7-Day Temperature Chart */}
-            <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6`}>
-              <h3 className={`text-lg font-semibold ${theme.text} mb-6`}>
-                Temperature Trends
-              </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient
-                      id="tempGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
+        <Marquee theme={theme} />
+
+        {/* AI SECTION */}
+        <section
+          id="ai-planner"
+          className="py-12 bg-white relative overflow-hidden"
+        >
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={VIEWPORT_CONFIG}
+                variants={{
+                  hidden: { opacity: 0, x: -50 },
+                  visible: {
+                    opacity: 1,
+                    x: 0,
+                    transition: { duration: 1, ease: SMOOTH_EASE },
+                  },
+                }}
+                className="order-2 lg:order-1"
+              >
+                <div className="relative bg-slate-50 border border-slate-200 rounded-[2.5rem] p-6 shadow-sm max-w-md mx-auto lg:mx-0">
+                  <div className="space-y-4">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      whileInView={{
+                        opacity: 1,
+                        scale: 1,
+                        y: 0,
+                        transition: {
+                          delay: 0.2,
+                          duration: 0.5,
+                          ease: SMOOTH_EASE,
+                        },
+                      }}
+                      viewport={VIEWPORT_CONFIG}
+                      className="flex justify-end"
                     >
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="day"
-                    stroke="#64748b"
-                    style={{ fontSize: "14px" }}
-                  />
-                  <YAxis
-                    stroke="#64748b"
-                    style={{ fontSize: "14px" }}
-                    label={{
-                      value: "Temperature (°C)",
-                      angle: -90,
-                      position: "insideLeft",
-                      style: { fontSize: "14px", fill: "#64748b" },
-                    }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                    }}
-                    formatter={(value, name) => {
-                      if (name === "pop") return [`${value}%`, "Rain Chance"];
-                      return [
-                        `${value}°C`,
-                        name === "temp"
-                          ? "Day"
-                          : name === "max"
-                          ? "Max"
-                          : "Min",
-                      ];
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="max"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    fill="url(#tempGradient)"
-                    name="max"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="temp"
-                    stroke="#6366f1"
-                    strokeWidth={3}
-                    dot={{ fill: "#6366f1", r: 4 }}
-                    name="temp"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="min"
-                    stroke="#06b6d4"
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={{ fill: "#06b6d4", r: 3 }}
-                    name="min"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-              <div className="flex justify-center gap-6 mt-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-indigo-600"></div>
-                  <span className="text-slate-600">Day Temp</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-red-500"></div>
-                  <span className="text-slate-600">Max Temp</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-cyan-500 border-dashed"></div>
-                  <span className="text-slate-600">Min Temp</span>
-                </div>
-              </div>
-            </div>
+                      <div className="bg-slate-900 text-white text-sm px-5 py-3 rounded-2xl rounded-tr-sm shadow-md">
+                        Plan a 2-day spiritual trip to Bhaktapur, vegan food
+                        only.
+                      </div>
+                    </motion.div>
 
-            {/* AI Suggestions */}
-            <div className={`${theme.cardBg} rounded-xl shadow-sm border ${theme.border} p-6`}>
-              <div className="flex items-center gap-2 mb-4">
-                <svg
-                  className={`w-5 h-5 text-${theme.accent}`}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <path
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <h3 className={`text-lg font-semibold ${theme.text}`}>
-                  AI Travel Insights
-                </h3>
-              </div>
-              {suggestionLoading && (
-                <div className="flex items-center gap-3 text-slate-600 py-4">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
-                  <span>Generating personalized suggestions...</span>
-                </div>
-              )}
-              {suggestionError && (
-                <div
-                  role="alert"
-                  className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
-                >
-                  {suggestionError}
-                </div>
-              )}
-              {!suggestionLoading && !suggestionError && !suggestionRaw && (
-                <div className="text-slate-600">
-                  Suggestions will appear here once the AI finishes analyzing
-                  the forecast.
-                </div>
-              )}
-              {!suggestionLoading && !suggestionError && suggestionRaw && (
-                <div className="space-y-4">
-                  <div className="text-xs text-slate-500">
-                    AI suggestion (short & scannable):
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      whileInView={{
+                        opacity: 1,
+                        scale: 1,
+                        y: 0,
+                        transition: {
+                          delay: 0.6,
+                          duration: 0.5,
+                          ease: SMOOTH_EASE,
+                        },
+                      }}
+                      viewport={VIEWPORT_CONFIG}
+                      className="flex justify-start"
+                    >
+                      <div className="bg-white border border-slate-100 text-slate-700 text-sm px-5 py-4 rounded-2xl rounded-tl-sm shadow-sm w-full">
+                        <p className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                          <Sparkles className="w-3 h-3 text-amber-500" /> Wander
+                          AI
+                        </p>
+                        <ul className="space-y-2 mb-3">
+                          <li className="flex gap-2">
+                            <span className="text-slate-500">08:00</span>
+                            <span>Yoga near Nyatapola Temple</span>
+                          </li>
+                          <li className="flex gap-2">
+                            <span className="text-slate-500">12:00</span>
+                            <span>Vegan Samay Baji at Café Nyatapola</span>
+                          </li>
+                          <li className="flex gap-2">
+                            <span className="text-slate-500">16:00</span>
+                            <span>Pottery workshop in Pottery Square</span>
+                          </li>
+                        </ul>
+                        <button
+                          className={`text-xs font-semibold ${theme.accentText}`}
+                        >
+                          + View full itinerary
+                        </button>
+                      </div>
+                    </motion.div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {sectionsOrder.map((label) => (
+
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0, rotate: -10 }}
+                    whileInView={{
+                      opacity: 1,
+                      scale: 1,
+                      rotate: 0,
+                      transition: {
+                        delay: 0.5,
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 15,
+                      },
+                    }}
+                    viewport={VIEWPORT_CONFIG}
+                    className="absolute -right-8 -bottom-8 bg-white p-4 rounded-2xl shadow-xl border border-slate-100 hidden sm:block"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                        <Utensils className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">
+                          Food Check
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          100% Vegan Options Found
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={VIEWPORT_CONFIG}
+                variants={containerVariants}
+                className="order-1 lg:order-2"
+              >
+                <motion.div
+                  variants={itemVariants}
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${theme.softAccentBg} ${theme.accentText} text-xs font-bold uppercase tracking-wider mb-4`}
+                >
+                  <Bot className="w-4 h-4" /> Ask AI
+                </motion.div>
+                <motion.h2
+                  variants={itemVariants}
+                  className="text-4xl md:text-5xl font-bold text-slate-900 mb-6"
+                >
+                  Your personal <br /> travel genius.
+                </motion.h2>
+                <motion.p
+                  variants={itemVariants}
+                  className="text-lg text-slate-500 mb-6 leading-relaxed"
+                >
+                  Nepal is complex. Weather changes fast, and the best places
+                  aren&apos;t on Google Maps. Our AI combines live weather data
+                  with deep local knowledge to build your perfect itinerary in
+                  seconds.
+                </motion.p>
+                <motion.ul
+                  variants={containerVariants}
+                  className="space-y-4 mb-8"
+                >
+                  {[
+                    "Find hidden waterfalls active only during monsoon",
+                    "Locate quiet temples for meditation away from crowds",
+                    "Suggest rooftops with the best mountain visibility right now",
+                  ].map((item, i) => (
+                    <motion.li
+                      key={i}
+                      variants={itemVariants}
+                      className="flex items-start gap-3"
+                    >
                       <div
-                        key={label}
-                        className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm"
+                        className={`mt-1 w-5 h-5 rounded-full ${theme.accentBg} flex items-center justify-center text-white flex-shrink-0`}
                       >
-                        <h4 className={`font-semibold ${theme.text} mb-2 flex items-center gap-2`}>
-                          <svg
-                            className="w-4 h-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          {label}
-                        </h4>
-                        <div className="prose prose-sm max-w-none text-slate-700">
-                          <ReactMarkdown>{sectionsMap[label]}</ReactMarkdown>
+                        <Sparkles className="w-2.5 h-2.5" />
+                      </div>
+                      <span className="text-slate-700">{item}</span>
+                    </motion.li>
+                  ))}
+                </motion.ul>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURES SECTION */}
+        <section
+          id="features"
+          className="py-12 bg-slate-50 relative scroll-mt-20"
+        >
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={containerVariants}
+              className="text-center max-w-3xl mx-auto mb-12"
+            >
+              <motion.h2
+                variants={itemVariants}
+                className="text-4xl font-bold text-slate-900 mb-4"
+              >
+                Everything you need <br /> to travel smarter.
+              </motion.h2>
+              <motion.p
+                variants={itemVariants}
+                className="text-lg text-slate-500"
+              >
+                Traditional apps show you the map. We show you the experience.
+                Powered by real-time data and local intelligence.
+              </motion.p>
+            </motion.div>
+
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={containerVariants}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(280px,auto)]"
+            >
+              <motion.div
+                variants={itemVariants}
+                className={`md:col-span-2 rounded-[2.5rem] p-8 relative overflow-hidden group border ${theme.border} ${theme.surface} hover:shadow-2xl transition-all duration-500`}
+              >
+                <div
+                  className={`absolute top-0 right-0 w-[500px] h-[500px] ${theme.softAccentBg} rounded-full blur-[100px] opacity-30 -mr-24 -mt-24 pointer-events-none`}
+                />
+
+                <div className="relative z-10 flex flex-col md:flex-row h-full gap-8">
+                  <div className="flex-1">
+                    <div
+                      className={`w-12 h-12 rounded-2xl ${theme.softAccentBg} ${theme.accentText} flex items-center justify-center mb-6`}
+                    >
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                      Dynamic Itineraries
+                    </h3>
+                    <p className="text-slate-500 mb-6 leading-relaxed">
+                      Plans that adapt to the weather. If it rains in Pokhara,
+                      we switch your boating trip to a cozy museum visit
+                      automatically.
+                    </p>
+                    <div
+                      className={`inline-flex items-center gap-2 text-sm font-bold ${theme.accentText}`}
+                    >
+                      Generate Trip <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 bg-white/60 backdrop-blur-md border border-slate-100/50 rounded-2xl p-5 shadow-sm self-center w-full max-w-sm hover:scale-[1.02] transition-transform duration-500">
+                    <div className="flex justify-between items-center mb-4 border-slate-100 pb-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase">
+                        Today&apos;s Plan
+                      </span>
+                      <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded-md">
+                        Oct 24
+                      </span>
+                    </div>
+                    <div className="space-y-0 relative">
+                      <div className="absolute left-[19px] top-3 bottom-3 w-[2px] bg-slate-100" />
+                      <div className="flex gap-3 relative z-10">
+                        <div className="w-10 text-[10px] font-bold text-slate-400 pt-1 text-right">
+                          09:00
+                        </div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 mt-1.5 ring-4 ring-white" />
+                        <div className="bg-slate-50 p-2 rounded-lg flex-1 mb-3">
+                          <p className="text-xs font-bold text-slate-700">
+                            Breakfast at Lakeside
+                          </p>
                         </div>
                       </div>
-                    ))}
+
+                      <div className="flex gap-3 relative z-10">
+                        <div className="w-10 text-[10px] font-bold text-slate-900 pt-1 text-right">
+                          11:00
+                        </div>
+                        <div
+                          className={`w-2.5 h-2.5 rounded-full ${theme.accentBg} mt-1.5 ring-4 ring-white`}
+                        />
+                        <div
+                          className={`${theme.softAccentBg} p-2 rounded-lg flex-1 mb-3 border ${theme.border}`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <p
+                              className={`text-xs font-bold ${theme.accentText}`}
+                            >
+                              Sarangkot Viewpoint
+                            </p>
+                            <Sun className="w-3 h-3 text-amber-500" />
+                          </div>
+                          <p className="text-[10px] text-slate-600 mt-1">
+                            Visibility: Perfect
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 relative z-10">
+                        <div className="w-10 text-[10px] font-bold text-slate-400 pt-1 text-right">
+                          14:00
+                        </div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 mt-1.5 ring-4 ring-white" />
+                        <div className="bg-slate-50 p-2 rounded-lg flex-1">
+                          <p className="text-xs font-bold text-slate-700">
+                            Tibetan Camp
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+              </motion.div>
+
+              <motion.div
+                variants={itemVariants}
+                className={`md:col-span-1 rounded-[2.5rem] p-8 relative overflow-hidden group border ${theme.border} bg-white hover:shadow-2xl transition-all duration-500 flex flex-col`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 to-white pointer-events-none" />
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center">
+                      <Thermometer className="w-6 h-6" />
+                    </div>
+                    <div className="bg-sky-50 text-sky-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                      Live
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    Smart Forecast
+                  </h3>
+                  <p className="text-sm text-slate-500 mb-8">
+                    Not just &quot;Sunny&quot;. We analyze visibility, leech
+                    warnings, and UV index.
+                  </p>
+                  <div className="bg-white rounded-2xl p-4 border border-sky-100 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-amber-100 rounded-full text-amber-500">
+                        <Sun className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-slate-900 leading-none">
+                          24°
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase">
+                          Feels like 26°
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-slate-50 p-2 rounded-lg text-center">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">
+                          Visibility
+                        </p>
+                        <p className="text-sm font-bold text-slate-700">15km</p>
+                      </div>
+                      <div className="bg-slate-50 p-2 rounded-lg text-center">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">
+                          Humidity
+                        </p>
+                        <p className="text-sm font-bold text-slate-700">45%</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                variants={itemVariants}
+                className={`md:col-span-1 rounded-[2.5rem] p-8 relative overflow-hidden group border ${theme.border} bg-white hover:shadow-2xl transition-all duration-500`}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-6">
+                  <Backpack className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  Packing Genius
+                </h3>
+                <p className="text-sm text-slate-500 mb-6">
+                  Personalized lists based on your trek altitude and season.
+                </p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3 group/item cursor-pointer">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <span className="text-sm text-slate-400 line-through decoration-slate-300">
+                      Raincoat
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 group/item cursor-pointer">
+                    <Circle className="w-5 h-5 text-slate-300 group-hover/item:text-emerald-500 transition-colors" />
+                    <span className="text-sm text-slate-700 font-medium">
+                      Water filter
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 group/item cursor-pointer">
+                    <Circle className="w-5 h-5 text-slate-300 group-hover/item:text-emerald-500 transition-colors" />
+                    <span className="text-sm text-slate-700 font-medium">
+                      Power bank
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                variants={itemVariants}
+                className="md:col-span-2 bg-slate-900 rounded-[2.5rem] px-8 py-10 relative overflow-hidden flex items-center group"
+              >
+                <div className="absolute inset-0 opacity-40 group-hover:opacity-50 group-hover:scale-105 transition-all duration-1000">
+                  <Image
+                    src="https://images.unsplash.com/photo-1572099606223-6e29045d7de3?q=80&w=2000&auto=format&fit=crop"
+                    alt="Map background"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent z-10" />
+                <div className="relative z-20 max-w-lg">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold uppercase tracking-wider mb-6">
+                    <Map className="w-3.5 h-3.5" /> Offline Maps
+                  </div>
+                  <h3 className="text-3xl font-bold text-white mb-4 leading-tight">
+                    Find the path <br /> less traveled.
+                  </h3>
+                  <p className="text-slate-300 mb-8 max-w-sm text-base">
+                    Access detailed maps of Thamel alleys and Annapurna trails
+                    even without internet. Verified by local guides.
+                  </p>
+                  <button className="h-12 px-6 rounded-full bg-white text-slate-900 font-bold text-sm hover:bg-slate-100 transition-all flex items-center gap-2 group/btn">
+                    Explore Hidden Gems
+                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+                <div className="absolute right-12 top-1/2 -translate-y-1/2 hidden md:block z-20">
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 animate-bounce">
+                      <Navigation className="w-6 h-6 text-white fill-current" />
+                    </div>
+                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-2 bg-black/50 blur-sm rounded-full" />
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
           </div>
-        )}
+        </section>
+
+        {/* CULTURAL SECTION */}
+        <section id="cultural-guide" className="py-12 bg-white scroll-mt-20">
+          <div className="max-w-7xl mx-auto px-6">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={containerVariants}
+              className="text-center max-w-2xl mx-auto mb-12"
+            >
+              <motion.h2
+                variants={itemVariants}
+                className="text-3xl md:text-4xl font-bold text-slate-900 mb-4"
+              >
+                Investigate every place.
+              </motion.h2>
+              <motion.p variants={itemVariants} className="text-slate-500">
+                We don&apos;t just show you the map. We show you the soul of the
+                place. History, food, and traditions, all curated by locals.
+              </motion.p>
+            </motion.div>
+
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={containerVariants}
+              className="grid md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]"
+            >
+              {/* Big Heritage Image */}
+              <motion.div
+                variants={itemVariants}
+                className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-3xl bg-slate-900 shadow-lg"
+              >
+                <div className="absolute inset-0 opacity-60 group-hover:scale-105 transition-transform duration-700">
+                  <Image
+                    src="https://images.unsplash.com/photo-1605640840605-14ac1855827b?auto=format&fit=crop&w=1000&q=80"
+                    alt="Kathmandu historical temple"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
+                <div className="absolute bottom-0 left-0 p-8 z-20">
+                  <Landmark className="text-white w-8 h-8 mb-3" />
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    Historical Heritage
+                  </h3>
+                  <p className="text-slate-300 text-sm mb-4">
+                    Discover the stories behind Swayambhunath, Patan Durbar
+                    Square, and the ancient trade routes of Thamel.
+                  </p>
+                  <span className="text-white text-xs font-bold underline decoration-amber-500 underline-offset-4">
+                    Read History
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* Authentic Tastes – now with 2-image slider (Juju Dhau + Momos) */}
+              <motion.div
+                variants={itemVariants}
+                className="md:col-span-2 relative group overflow-hidden rounded-3xl shadow-lg"
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={AUTHENTIC_IMAGES[authenticIndex].src}
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -40 }}
+                    transition={{ duration: 0.7, ease: SMOOTH_EASE }}
+                    className="absolute inset-0 opacity-90 group-hover:rotate-1 group-hover:scale-105 transition-transform duration-700"
+                  >
+                    <Image
+                      src={AUTHENTIC_IMAGES[authenticIndex].src}
+                      alt={AUTHENTIC_IMAGES[authenticIndex].alt}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                  </motion.div>
+                </AnimatePresence>
+
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors z-10" />
+                <div className="absolute top-6 left-6 bg-white/90 backdrop-blur px-4 py-2 rounded-xl z-20">
+                  <div className="flex items-center gap-2">
+                    <Utensils className="w-4 h-4 text-orange-600" />
+                    <span className="font-bold text-slate-900 text-sm">
+                      Authentic Tastes
+                    </span>
+                  </div>
+                </div>
+                <div className="absolute bottom-6 left-6 z-20">
+                  <h3 className="text-xl font-bold text-white drop-shadow-md">
+                    Must-try: Juju Dhau &amp; Momos
+                  </h3>
+                </div>
+              </motion.div>
+
+              {/* Traditions */}
+              <motion.div
+                variants={itemVariants}
+                className="relative group overflow-hidden rounded-3xl shadow-sm border border-slate-200"
+              >
+                <div className="absolute inset-0">
+                  <Image
+                    src="/images/tradition.jpg"
+                    alt="Nepali traditional festival"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    sizes="(max-width: 768px) 100vw, 25vw"
+                  />
+                </div>
+
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
+
+                <div className="relative z-10 p-6 flex flex-col justify-end h-full">
+                  <h3 className="font-bold text-white mb-1">Traditions</h3>
+                  <p className="text-xs text-slate-200">
+                    Local etiquette, greetings, and festival calendars.
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Hidden Nature */}
+              <motion.div
+                variants={itemVariants}
+                className="relative group overflow-hidden rounded-3xl bg-slate-900 shadow-sm"
+              >
+                <div className="absolute inset-0 opacity-80">
+                  <Image
+                    src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=800&q=80"
+                    alt="Hidden nature in Nepal"
+                    fill
+                    className="object-cover"
+                    sizes="25vw"
+                  />
+                </div>
+                <div className="absolute bottom-6 left-6 z-10">
+                  <h3 className="font-bold text-white">Hidden Nature</h3>
+                  <p className="text-xs text-slate-300">Secret waterfalls.</p>
+                </div>
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* CTA SECTION */}
+        <section className="py-12 px-4 sm:px-6 bg-slate-50">
+          <div className="max-w-7xl mx-auto">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={containerVariants}
+              className="text-center max-w-2xl mx-auto mb-12"
+            >
+              <motion.h2
+                variants={itemVariants}
+                className="text-3xl md:text-4xl font-bold mb-4"
+              >
+                Ready to design your Nepal story?
+              </motion.h2>
+              <motion.p variants={itemVariants} className="text-slate-500">
+                Turn scattered ideas into a clear, weather-smart itinerary.
+                Start with one click, adjust everything with AI.
+              </motion.p>
+            </motion.div>
+
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={scaleUpVariants}
+              className="relative rounded-[3rem] overflow-hidden min-h-[500px] flex items-center justify-center shadow-2xl bg-slate-900"
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`cta-${mood}`}
+                  initial={{ opacity: 0, scale: 1.1 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1 }}
+                  className="absolute inset-0 w-full h-full"
+                >
+                  <Image
+                    src={theme.heroImage}
+                    alt="Nepal Scenery"
+                    fill
+                    className="object-cover"
+                    sizes="100vw"
+                  />
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="absolute inset-0 bg-black/40 z-10" />
+
+              <div className="relative z-20 w-full max-w-2xl px-6">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-8 md:p-12 text-center shadow-2xl">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-slate-900 text-xs font-bold uppercase tracking-widest mb-8">
+                    <Sparkles className="w-3.5 h-3.5 fill-slate-900" />
+                    Your Journey Awaits
+                  </div>
+
+                  <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight drop-shadow-sm">
+                    Namaste, Traveler.
+                  </h2>
+
+                  <p className="text-lg md:text-xl text-white/90 mb-10 leading-relaxed font-medium">
+                    Experience Nepal through a lens crafted just for you.
+                    Weather, culture, and vibes—perfectly aligned.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <Link
+                      href="/auth/register"
+                      className="w-full sm:w-auto h-14 px-10 rounded-full bg-white text-slate-900 font-bold text-lg hover:scale-105 transition-transform shadow-xl flex items-center justify-center gap-2"
+                    >
+                      Start Planning
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
+                    <span className="text-white/80 text-sm font-medium">
+                      Free for your first 3 trips
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute bottom-8 left-8 text-white/60 text-xs font-mono hidden md:block z-20">
+                COORD: 28.3949° N, 84.1240° E
+              </div>
+            </motion.div>
+          </div>
+        </section>
       </main>
 
-      <footer className={`border-t ${theme.border} mt-16`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <p className="text-center text-sm text-slate-600">
-            Team Wander Weather — Prativa Secondary School
-          </p>
-        </div>
-      </footer>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-      `}</style>
+      <Footer theme={theme} />
     </div>
   );
 }
