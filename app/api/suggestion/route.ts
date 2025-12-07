@@ -28,7 +28,6 @@ type WeatherPayload = {
 
 /**
  * Try to coerce input to a number. If not possible, return the provided fallback.
- * fallback can be number | string | null.
  */
 function safeNum(n: any, fallback: number | string | null = null): number | string | null {
   if (typeof n === 'number' && !Number.isNaN(n)) return n;
@@ -40,14 +39,12 @@ function safeNum(n: any, fallback: number | string | null = null): number | stri
   return fallback;
 }
 
-// --- helper: sleep + retryWithBackoff ---
+// --- Helper: sleep ---
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * retryWithBackoff - retries the provided function on transient errors (429, 503, etc)
- */
+// --- Retry with exponential backoff ---
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   attempts = 5,
@@ -61,31 +58,61 @@ async function retryWithBackoff<T>(
     } catch (err: any) {
       attempt++;
       const status =
-        err?.error?.code ?? err?.status ?? err?.statusCode ?? err?.code ?? err?.status_text;
+        err?.error?.code ??
+        err?.status ??
+        err?.statusCode ??
+        err?.code ??
+        err?.status_text;
 
-      // Consider these statuses transient. If not one of these, treat as non-transient.
       const transientStatuses = new Set([429, 503, 'UNAVAILABLE', 'RATE_LIMIT_EXCEEDED', 'TOO_MANY_REQUESTS']);
       const isTransient =
         (typeof status === 'number' && (status === 429 || status === 503)) ||
         (typeof status === 'string' && transientStatuses.has(status));
 
       if (!isTransient || attempt >= attempts) {
-        // Rethrow the original error
         throw err;
       }
 
-      // Exponential backoff with jitter
       const expo = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, attempt));
       const jitter = Math.floor(Math.random() * Math.min(1000, Math.floor(expo / 2)));
       const wait = Math.max(100, expo - jitter);
+
       console.warn(
-        `Model call failed (attempt ${attempt}/${attempts}). status=${String(status)} — retrying in ${wait}ms`,
+        `Model call failed (attempt ${attempt}/${attempts}), status=${String(status)} — retrying in ${wait}ms`,
         err?.message ?? err
       );
       await sleep(wait);
-      // loop to retry
     }
   }
+}
+
+// --- Safe extraction of text from Gemini response (handles multiple shapes) ---
+function extractSuggestionText(response: any): string {
+  if (!response) return '';
+
+  // Common direct text fields
+  if (typeof response.text === 'string') return response.text.trim();
+  if (typeof response.outputText === 'string') return response.outputText.trim();
+
+  // Array of candidates (newer Gemini format)
+  if (Array.isArray(response.candidates)) {
+    const parts = response.candidates
+      .flatMap((c: any) => c.content?.parts ?? [])
+      .map((p: any) => p.text ?? '')
+      .filter(Boolean);
+    if (parts.length) return parts.join('\n').trim();
+  }
+
+  // Older formats
+  if (Array.isArray(response.outputs)) {
+    return response.outputs
+      .map((o: any) => o?.text ?? o?.content ?? '')
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+  }
+
+  return '';
 }
 
 export async function POST(request: Request) {
@@ -116,7 +143,7 @@ export async function POST(request: Request) {
     const currentTemp = safeNum(payload.weather.current?.temp, 'unknown');
     const currentWeather = payload.weather.current?.weather?.[0]?.description ?? 'Unknown';
 
-    // Prepare a compact 7-day summary for the prompt
+    // Prepare compact 7-day forecast
     const dailyForecast = payload.weather.daily.slice(0, 7).map((day: any) => {
       const date = new Date(day.dt * 1000).toLocaleDateString('en-US', {
         weekday: 'short',
@@ -131,7 +158,6 @@ export async function POST(request: Request) {
       return { date, min, max, rain, desc };
     });
 
-    // Enhanced prompt asking for concise bullet points and extra contextual info
     const prompt = `
 You are an expert travel planner and local guide for ${location}, ${country}.
 Analyze the 7-day weather data below and produce a concise, easy-to-skim travel suggestion in **short bullet points**.
@@ -158,74 +184,50 @@ Include these labeled sections (each as short bullets prefixed by a bold label).
 Tone: friendly, local, practical. Make lines short and scannable.
     `;
 
-    // --- Model call with retry + fallback ---
-    const modelPrimary = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash';
-    const modelFallback = process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-2.1';
+    const modelPrimary = process.env.GEMINI_MODEL ?? 'gemini-1.5-flash';
+    const modelFallback = process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-1.5-pro';
 
     let response: any = null;
 
     try {
-      response = await retryWithBackoff(
-        async () =>
-          await ai.models.generateContent({
-            model: modelPrimary,
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          }),
-        /*attempts=*/ 5,
-        /*baseDelayMs=*/ 600,
-        /*maxDelayMs=*/ 8000
+      response = await retryWithBackoff(async () =>
+        ai.models.generateContent({
+          model: modelPrimary,
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        })
       );
     } catch (errPrimary: any) {
-      console.error('Primary model failed after retries:', errPrimary?.message ?? errPrimary);
-      // Try fallback once
+      console.error('Primary model failed after retries:', errPrimary);
+      console.info(`Falling back to model: ${modelFallback}`);
       try {
-        console.info(`Attempting fallback model: ${modelFallback}`);
         response = await ai.models.generateContent({
           model: modelFallback,
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
         });
       } catch (errFallback: any) {
-        console.error('Fallback model also failed:', errFallback?.message ?? errFallback);
+        console.error('Fallback model failed:', errFallback);
         return NextResponse.json(
           {
-            error: 'Suggestion service temporarily unavailable. Please try again in a few minutes.',
-            details:
-              process.env.NODE_ENV === 'development'
-                ? String(errFallback?.message ?? errFallback)
-                : undefined,
+            error: 'Suggestion service temporarily unavailable. Please try again later.',
+            details: process.env.NODE_ENV === 'development' ? String(errFallback) : undefined,
           },
           { status: 503 }
         );
       }
     }
 
-    // Defensive extraction of text from possible model response shapes
-    let suggestionText = '';
-    try {
-      suggestionText =
-        (response?.text as string) ??
-        (response?.outputText as string) ??
-        (Array.isArray(response?.outputs) && response.outputs.length
-          ? // @ts-ignore
-            response.outputs.map((o: any) => o.text || o.content || '').join('\n')
-          : '') ??
-        '';
-      suggestionText = String(suggestionText).trim();
-    } catch (e) {
-      console.warn('Error extracting suggestion text:', e);
-      suggestionText = '';
-    }
+    const suggestionText = extractSuggestionText(response);
 
     if (!suggestionText) {
-      console.error('AI returned empty suggestion:', response);
-      return NextResponse.json({ error: 'AI returned empty suggestion.' }, { status: 500 });
+      console.error('AI returned empty or unreadable response:', response);
+      return NextResponse.json({ error: 'Failed to generate suggestion.' }, { status: 500 });
     }
 
     return NextResponse.json({ suggestion: suggestionText }, { status: 200 });
   } catch (error: any) {
     console.error('Suggestion API error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to generate suggestion.' },
+      { error: error?.message || 'Internal server error.' },
       { status: 500 }
     );
   }

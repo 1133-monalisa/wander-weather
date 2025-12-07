@@ -51,11 +51,14 @@ export default function Page() {
 
   const [authenticIndex, setAuthenticIndex] = useState(0);
 
-  useEffect(() => {
+useEffect(() => {
+  setTimeout(() => {
     setIsMounted(true);
     const saved = localStorage.getItem("userMood") as Mood | null;
     if (saved && MOOD_THEMES[saved]) setMood(saved);
-  }, []);
+  }, 0);
+}, []);
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -80,7 +83,7 @@ export default function Page() {
     >
       <Navbar mood={mood} theme={theme} onChangeMood={changeMood} />
 
-      <main className="pt-20 md:pt-24">
+      <main className="pt-22 md:pt-24">
         {/* HERO SECTION */}
         <section className="relative px-6 md:px-8 pb-12 overflow-hidden">
           <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
