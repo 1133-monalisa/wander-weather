@@ -8,8 +8,9 @@ import React, {
   useState,
 } from "react";
 import type { User } from "firebase/auth";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onIdTokenChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
+import Cookies from "js-cookie";
 
 type AuthContextValue = {
   user: User | null;
@@ -24,10 +25,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    const unsub = onIdTokenChanged(auth, async (u) => {
+      if (u) {
+        const token = await u.getIdToken();
+        Cookies.set("token", token, { expires: 1 });
+        setUser(u);
+      } else {
+        Cookies.remove("token");
+        setUser(null);
+      }
       setLoading(false);
     });
+
     return () => unsub();
   }, []);
 

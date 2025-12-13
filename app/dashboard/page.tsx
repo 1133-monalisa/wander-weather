@@ -56,6 +56,8 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
+import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /* ---------------- TYPES ---------------- */
 
@@ -338,6 +340,29 @@ export default function DashboardPage() {
 
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
 
+  const router = useRouter();
+  const [isVerified, setIsVerified] = useState(false);
+
+  useEffect(() => {
+    const verifySession = async () => {
+      try {
+        const res = await fetch("/api/auth/verify-session");
+        const data = await res.json();
+
+        if (res.ok && data.isLogged) {
+          setIsVerified(true);
+        } else {
+          router.push("/auth/login");
+        }
+      } catch (err) {
+        console.error("Session verification failed", err);
+        router.push("/auth/login");
+      }
+    };
+
+    verifySession();
+  }, [router]);
+
   useEffect(() => {
     setTimeout(() => {
       setIsMounted(true);
@@ -518,7 +543,55 @@ export default function DashboardPage() {
     await run(place);
   }
 
-  if (!isMounted) return null;
+
+  if (!isMounted || !isVerified) {
+    return (
+      <div className="min-h-screen bg-slate-50 antialiased font-sans overflow-hidden">
+        <div className="fixed top-0 inset-x-0 z-40 h-[72px] md:h-[80px] bg-white/80 backdrop-blur-xl border-b border-slate-200/80" />
+        <main className="pt-[72px] md:pt-[80px]">
+          <section className="px-4 sm:px-6 md:px-8 sticky top-[72px] md:top-[80px] z-30 mt-4 md:mt-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="rounded-[2rem] border border-slate-200/80 bg-white/75 backdrop-blur-xl p-4 sm:p-5 md:p-6 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <Skeleton className="h-7 w-48 rounded-full bg-slate-200" />{" "}
+                  <Skeleton className="h-10 w-28 rounded-full bg-slate-100" />{" "}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Skeleton className="h-12 flex-1 rounded-[999px] bg-slate-100" />{" "}
+                  <Skeleton className="h-12 w-32 rounded-[999px] bg-slate-200" />{" "}
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-20 rounded-full bg-slate-100" />
+                  <Skeleton className="h-8 w-24 rounded-full bg-slate-100" />
+                  <Skeleton className="h-8 w-16 rounded-full bg-slate-100" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="px-4 sm:px-6 md:px-8 pb-14 mt-6">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    className="h-[110px] w-full rounded-[1.5rem] bg-slate-200 border border-slate-200/50"
+                  />
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Skeleton className="h-[350px] w-full rounded-[2rem] bg-slate-100 border border-slate-200/50" />
+                <Skeleton className="h-[350px] w-full rounded-[2rem] bg-slate-100 border border-slate-200/50" />
+              </div>
+
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   const busy = loadingWeather || loadingSuggestion;
 
   return (

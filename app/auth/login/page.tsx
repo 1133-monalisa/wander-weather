@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
-import type { LoginFormValues } from "@/types/firebase";
+import type { LoginFormValues } from "@/types/firebase"; // Ensure this path matches your project
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Mail, Lock } from "lucide-react";
 
@@ -26,6 +26,7 @@ export default function LoginPage(): JSX.Element {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       router.push("/dashboard");
+      router.refresh(); // Force a refresh so the Middleware sees the new cookie immediately
     } catch (err: unknown) {
       setFirebaseError("Invalid email or password.");
     } finally {
@@ -34,7 +35,6 @@ export default function LoginPage(): JSX.Element {
   };
 
   return (
-    // h-screen + overflow-hidden ensures no scrolling
     <div className="h-screen w-full flex bg-slate-50 font-sans selection:bg-indigo-500 selection:text-white overflow-hidden">
       {/* --- Left Side: Visual & Vibe (Fixed, No Scroll) --- */}
       <div className="hidden lg:flex w-1/2 relative h-full bg-slate-900">
@@ -79,12 +79,7 @@ export default function LoginPage(): JSX.Element {
           <ArrowLeft className="w-5 h-5" /> Home
         </Link>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5 }}
-          className="w-full max-w-sm space-y-8"
-        >
+        <div className="w-full max-w-sm space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
               Sign in
@@ -192,7 +187,7 @@ export default function LoginPage(): JSX.Element {
               </Link>
             </p>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

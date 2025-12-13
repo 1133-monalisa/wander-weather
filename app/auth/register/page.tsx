@@ -11,15 +11,9 @@ import {
 } from "firebase/auth";
 import { setDoc, doc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
-import type { RegisterFormValues, UserProfile } from "@/types/firebase";
+import type { RegisterFormValues, UserProfile } from "@/types/firebase"; // Ensure path matches
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Loader2,
-  Mail,
-  Lock,
-  User as UserIcon,
-} from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon } from "lucide-react";
 
 export default function RegisterPage(): JSX.Element {
   const router = useRouter();
@@ -56,7 +50,9 @@ export default function RegisterPage(): JSX.Element {
       };
 
       await setDoc(doc(db, "users", user.uid), userDoc);
-      router.push("/auth/login");
+
+      router.push("/dashboard");
+      router.refresh();
     } catch (err: unknown) {
       setFirebaseError("Registration failed. Email might be in use.");
     } finally {
@@ -65,7 +61,6 @@ export default function RegisterPage(): JSX.Element {
   };
 
   return (
-    // h-screen + overflow-hidden ensures no scrolling
     <div className="h-screen w-full flex bg-slate-50 font-sans selection:bg-emerald-500 selection:text-white overflow-hidden">
       {/* --- Left Side: Visual & Vibe (Fixed) --- */}
       <div className="hidden lg:flex w-1/2 relative h-full bg-slate-900">
@@ -110,12 +105,7 @@ export default function RegisterPage(): JSX.Element {
           <ArrowLeft className="w-5 h-5" /> Home
         </Link>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5 }}
-          className="w-full max-w-sm space-y-8"
-        >
+        <div className="w-full max-w-sm space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
               Create account
@@ -238,7 +228,7 @@ export default function RegisterPage(): JSX.Element {
               </Link>
             </p>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
