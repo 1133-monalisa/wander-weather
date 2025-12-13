@@ -56,7 +56,7 @@ export default function RegisterPage(): JSX.Element {
       };
 
       await setDoc(doc(db, "users", user.uid), userDoc);
-      router.push("/");
+      router.push("/auth/login");
     } catch (err: unknown) {
       setFirebaseError("Registration failed. Email might be in use.");
     } finally {

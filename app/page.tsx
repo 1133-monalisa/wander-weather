@@ -81,7 +81,12 @@ useEffect(() => {
     <div
       className={`min-h-screen ${theme.pageBg} transition-colors duration-700 antialiased font-sans selection:${theme.accentBg} selection:text-white`}
     >
-      <Navbar mood={mood} theme={theme} onChangeMood={changeMood} />
+      <Navbar
+        mood={mood}
+        theme={theme}
+        onChangeMood={changeMood}
+        variant="landing"
+      />
 
       <main className="pt-22 md:pt-24">
         {/* HERO SECTION */}

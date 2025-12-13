@@ -25,7 +25,7 @@ export default function LoginPage(): JSX.Element {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: unknown) {
       setFirebaseError("Invalid email or password.");
     } finally {

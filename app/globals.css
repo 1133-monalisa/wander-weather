@@ -3,6 +3,12 @@
 
 html{
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+::selection {
+  background: #3390ff;
+  color: #ffffff;
 }
 
 @custom-variant dark (&:is(.dark *));
