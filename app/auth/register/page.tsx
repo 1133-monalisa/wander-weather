@@ -11,7 +11,7 @@ import {
 } from "firebase/auth";
 import { setDoc, doc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
-import type { RegisterFormValues, UserProfile } from "@/types/firebase"; // Ensure path matches
+import type { RegisterFormValues, UserProfile } from "@/types/firebase";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Mail, Lock, User as UserIcon } from "lucide-react";
 
@@ -61,25 +61,24 @@ export default function RegisterPage(): JSX.Element {
   };
 
   return (
-    <div className="h-screen w-full flex bg-slate-50 font-sans selection:bg-emerald-500 selection:text-white overflow-hidden">
-      {/* --- Left Side: Visual & Vibe (Fixed) --- */}
-      <div className="hidden lg:flex w-1/2 relative h-full bg-slate-900">
+    <div className="h-screen w-full relative lg:flex bg-slate-50 font-sans selection:bg-emerald-500 selection:text-white overflow-hidden">
+      <div className="absolute inset-0 z-0 lg:relative lg:z-auto lg:w-1/2 bg-slate-900">
         <motion.img
-          initial={{ scale: 1.1, opacity: 0 }}
+          initial={{ scale: 1.1, opacity: 0.8 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 1.5 }}
+          transition={{ duration: 0.5}}
           src="https://images.unsplash.com/photo-1486911278844-a81c5267e227?q=80&w=1600&auto=format&fit=crop"
           alt="Register Background"
-          className="absolute inset-0 w-full h-full object-cover opacity-60"
+          className="absolute inset-0 w-full h-full object-cover opacity-100 lg:opacity-60"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-black/40 lg:bg-gradient-to-t lg:from-slate-900 via-transparent to-transparent" />
 
-        <div className="relative z-10 flex flex-col justify-between p-12 w-full h-full">
+        <div className="relative z-10 hidden lg:flex flex-col justify-between p-12 w-full h-full">
           <Link
             href="/"
             className="flex items-center gap-2 text-white/80 hover:text-white transition-colors w-fit group"
           >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />{" "}
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
             Back to Home
           </Link>
 
@@ -95,17 +94,19 @@ export default function RegisterPage(): JSX.Element {
         </div>
       </div>
 
-      {/* --- Right Side: Form (Centered, No Scroll) --- */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative h-full bg-white">
-        {/* Mobile Home Link */}
+      <div className="relative z-10 w-full h-full lg:w-1/2 flex items-center justify-center p-4 lg:p-6 lg:bg-white">
         <Link
           href="/"
-          className="absolute top-8 left-8 lg:hidden flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
+          className="absolute top-6 left-6 flex lg:hidden items-center gap-2 text-white hover:text-white/80 transition-colors z-20"
         >
           <ArrowLeft className="w-5 h-5" /> Home
         </Link>
 
-        <div className="w-full max-w-sm space-y-8">
+        <div
+          className="w-full max-w-sm space-y-8
+                        bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl
+                        lg:bg-transparent lg:backdrop-filter-none lg:p-0 lg:rounded-none lg:shadow-none"
+        >
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
               Create account
@@ -116,7 +117,6 @@ export default function RegisterPage(): JSX.Element {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Name Field */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">
                 Full Name
@@ -129,12 +129,11 @@ export default function RegisterPage(): JSX.Element {
                   {...formRegister("displayName")}
                   type="text"
                   placeholder="John Doe"
-                  className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-slate-900 placeholder:text-slate-400 font-medium"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 bg-white/50 lg:bg-white hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-slate-900 placeholder:text-slate-400 font-medium"
                 />
               </div>
             </div>
 
-            {/* Email Field */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">
                 Email
@@ -150,7 +149,7 @@ export default function RegisterPage(): JSX.Element {
                   className={`w-full pl-11 pr-4 py-3.5 rounded-xl border ${
                     errors.email
                       ? "border-red-300 bg-red-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      : "border-slate-200 bg-white/50 lg:bg-white hover:border-slate-300"
                   } focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-slate-900 placeholder:text-slate-400 font-medium`}
                 />
               </div>
@@ -161,7 +160,6 @@ export default function RegisterPage(): JSX.Element {
               )}
             </div>
 
-            {/* Password Field */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">
                 Password
@@ -183,7 +181,7 @@ export default function RegisterPage(): JSX.Element {
                   className={`w-full pl-11 pr-4 py-3.5 rounded-xl border ${
                     errors.password
                       ? "border-red-300 bg-red-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      : "border-slate-200 bg-white/50 lg:bg-white hover:border-slate-300"
                   } focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-slate-900 placeholder:text-slate-400 font-medium`}
                 />
               </div>

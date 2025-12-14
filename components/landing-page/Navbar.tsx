@@ -39,7 +39,13 @@ import { MOOD_THEMES, Mood, MoodTheme } from "@/lib/mood";
 import { SMOOTH_EASE } from "@/lib/animation";
 import { useAuth } from "@/context/AuthContext";
 
-import { LogOut, PlaneTakeoff, User as UserIcon } from "lucide-react";
+import {
+  LogOut,
+  PlaneTakeoff,
+  User as UserIcon,
+  SlidersHorizontal,
+  Check,
+} from "lucide-react";
 
 interface NavbarProps {
   mood: Mood;
@@ -78,6 +84,8 @@ const Navbar: React.FC<NavbarProps> = ({
     }
   }
 
+  const activeMoodMeta = MOOD_THEMES[mood];
+
   return (
     <>
       <motion.nav
@@ -86,11 +94,11 @@ const Navbar: React.FC<NavbarProps> = ({
         transition={{ duration: 0.8, ease: SMOOTH_EASE }}
         className={`fixed top-0 w-full z-50 transition-colors duration-500 bg-white/80 backdrop-blur-xl border-b ${theme.border}`}
       >
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-3">
           {/* Brand */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className={`w-10 h-10 rounded-xl ${theme.accentBg} text-white flex items-center justify-center shadow-lg transition-colors duration-500`}
+              className={`w-10 h-10 rounded-xl ${theme.accentBg} text-white flex items-center justify-center shadow-lg transition-colors duration-500 flex-shrink-0`}
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
                 <path
@@ -103,7 +111,7 @@ const Navbar: React.FC<NavbarProps> = ({
               </svg>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <span
                 className={`text-lg font-bold tracking-tight block leading-none ${theme.heading}`}
               >
@@ -115,7 +123,7 @@ const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Nav links: ONLY on landing */}
+          {/* Nav links: ONLY on landing (desktop) */}
           {variant === "landing" && (
             <div className="hidden md:flex items-center gap-8">
               {["Features", "Destinations", "Cultural Guide", "Stories"].map(
@@ -133,7 +141,68 @@ const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {/* Right side */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* ✅ MOBILE mood: single button -> dropdown (clean) */}
+            <div className="sm:hidden">
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-10 px-3 rounded-full flex items-center gap-2 max-w-[90px]"
+                    aria-label="Change mood"
+                  >
+                    {activeMoodMeta?.icon && (
+                      <activeMoodMeta.icon className="w-4 h-4" />
+                    )}
+                    <span className="text-sm font-semibold truncate">
+                      {activeMoodMeta?.name ?? "Mood"}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-64"
+                >
+                  <DropdownMenuLabel className="text-xs text-slate-500">
+                    Select mood
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  {Object.entries(MOOD_THEMES).map(([key, m]) => {
+                    const Icon = m.icon;
+                    const isActive = mood === key;
+
+                    return (
+                      <DropdownMenuItem
+                        key={key}
+                        className="cursor-pointer flex items-start gap-2"
+                        onClick={() => onChangeMood(key as Mood)}
+                      >
+                        <span
+                          className={`mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full border ${theme.border} ${theme.softAccentBg}`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </span>
+
+                        <span className="flex-1">
+                          <span className="text-sm font-semibold flex items-center gap-2">
+                            {m.name}
+                            {isActive && <Check className="w-4 h-4" />}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {m.desc}
+                          </span>
+                        </span>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* ✅ DESKTOP mood: pill selector (spacious) */}
             <div
               className={`hidden sm:flex ${theme.softAccentBg} backdrop-blur p-1 rounded-full border ${theme.border} transition-colors duration-500`}
             >
@@ -141,6 +210,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 {Object.entries(MOOD_THEMES).map(([key, m]) => {
                   const Icon = m.icon;
                   const isActive = mood === key;
+
                   return (
                     <Tooltip key={key}>
                       <TooltipTrigger asChild>
@@ -246,7 +316,10 @@ const Navbar: React.FC<NavbarProps> = ({
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => setLogoutOpen(true)}>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setLogoutOpen(true)}
+                  >
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
