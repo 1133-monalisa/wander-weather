@@ -58,6 +58,14 @@ import {
 } from "recharts";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import dynamic from "next/dynamic";
+
+const MapView = dynamic(() => import("@/components/map/MapView"), {
+  ssr: false,
+  loading: () => (
+    <Skeleton className="h-[400px] w-full rounded-[2rem] bg-slate-100 animate-pulse" />
+  ),
+});
 
 /* ---------------- TYPES ---------------- */
 
@@ -89,6 +97,43 @@ type WeatherPayload = {
 };
 
 /* ---------------- FORMATTING HELPERS ---------------- */
+
+// --- Helper: Extract Points from AI Text ---
+// Since AI text doesn't have coords, we simulate them near the main location for the visual
+function extractPinsFromAI(
+  suggestion: string,
+  mainLat: number,
+  mainLon: number
+) {
+  if (!suggestion || !mainLat || !mainLon) return [];
+
+  const extracted = [];
+  const lines = suggestion.split("\n");
+
+  // Regex to find bullet points with bold text: "- **Place Name**: description"
+  const regex = /-\s*\*\*(.*?)\*\*/;
+
+  let count = 0;
+  for (const line of lines) {
+    const match = line.match(regex);
+    if (match && match[1] && count < 5) {
+      // Create a small random offset to scatter pins around the city center
+      // (approx 1-3km offset)
+      const latOffset = (Math.random() - 0.5) * 0.04;
+      const lonOffset = (Math.random() - 0.5) * 0.04;
+
+      extracted.push({
+        lat: mainLat + latOffset,
+        lon: mainLon + lonOffset,
+        label: match[1],
+        popup: "Recommended by AI",
+        category: "activity" as const,
+      });
+      count++;
+    }
+  }
+  return extracted;
+}
 
 function extractApiErrorMessage(data: any): string {
   // Your API currently returns: { error: "...." } (sometimes a huge JSON string)
@@ -343,6 +388,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const [isVerified, setIsVerified] = useState(false);
 
+  // NEW STATE: Store the lists directly from API
+  const [aiPins, setAiPins] = useState<any[]>([]);
+  const [activitiesList, setActivitiesList] = useState<string[]>([]);
+  const [packingList, setPackingList] = useState<string[]>([]);
+  const [activePinIndex, setActivePinIndex] = useState<number | null>(null);
+
   useEffect(() => {
     const verifySession = async () => {
       try {
@@ -509,15 +560,45 @@ export default function DashboardPage() {
 
   async function fetchSuggestion(payload: WeatherPayload) {
     setLoadingSuggestion(true);
+    // Clear old data
+    setActivePinIndex(null);
+    setActivitiesList([]);
+    setPackingList([]);
+    setAiPins([]);
+    setSuggestion("");
+
     try {
       const res = await fetch("/api/suggestion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(extractApiErrorMessage(data));
+
+      // 1. Set text content
       setSuggestion(normalizeAiToMarkdown(data?.suggestion ?? ""));
+
+      // 2. Set Map Pins
+      if (Array.isArray(data.places)) {
+        const mappedPins = data.places.map((p: any) => ({
+          lat: p.lat,
+          lon: p.lon,
+          label: p.name,
+          popup: p.description,
+          category: p.category,
+        }));
+        setAiPins(mappedPins);
+      }
+
+      // 3. Set Quick Picks (Activities & Packing)
+      if (Array.isArray(data.activities)) {
+        setActivitiesList(data.activities);
+      }
+      if (Array.isArray(data.packing_tips)) {
+        setPackingList(data.packing_tips);
+      }
     } catch (e: any) {
       setError(e?.message ?? "Suggestion failed.");
     } finally {
@@ -542,7 +623,6 @@ export default function DashboardPage() {
     setActiveQuery(place);
     await run(place);
   }
-
 
   if (!isMounted || !isVerified) {
     return (
@@ -584,7 +664,6 @@ export default function DashboardPage() {
                 <Skeleton className="h-[350px] w-full rounded-[2rem] bg-slate-100 border border-slate-200/50" />
                 <Skeleton className="h-[350px] w-full rounded-[2rem] bg-slate-100 border border-slate-200/50" />
               </div>
-
             </div>
           </section>
         </main>
@@ -799,6 +878,294 @@ export default function DashboardPage() {
                 theme={theme}
               />
             </div>
+
+            {/* --- MAP SECTION (OPTIMIZED) --- */}
+            <motion.div
+              layout
+              className={`grid grid-cols-1 lg:grid-cols-12 gap-6 transition-all duration-700 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${
+                weatherPayload?.location?.lat || busy
+                  ? "h-[550px]"
+                  : "h-auto"
+              }`}
+            >
+              <AnimatePresence mode="wait">
+                {/* ---------------- 1. PROCESSING STATE (Loading) ---------------- */}
+                {busy ? (
+                  <>
+                    {/* LEFT: Map Loading Placeholder */}
+                    <motion.div
+                      key="map-loading-left"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.3 }}
+                      className="lg:col-span-8 h-full rounded-[2.5rem] overflow-hidden border border-slate-200/80 bg-slate-50 relative flex flex-col items-center justify-center text-center p-6"
+                    >
+                      {/* Pulsing Background Effect */}
+                      <div className="absolute inset-0 overflow-hidden">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-400/5 rounded-full blur-3xl animate-pulse" />
+                      </div>
+
+                      <div className="relative z-10 flex flex-col items-center gap-4">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-emerald-100 rounded-full animate-ping opacity-75" />
+                          <div className="relative h-16 w-16 bg-white rounded-full border-4 border-emerald-50 flex items-center justify-center shadow-sm">
+                            <Sparkles className="w-6 h-6 text-emerald-500 animate-pulse" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <h3 className="text-xl font-extrabold text-slate-900">
+                            Generating Map
+                          </h3>
+                          <p className="text-sm text-slate-500 font-medium max-w-xs mx-auto">
+                            AI is analyzing geography and weather to pinpoint
+                            the perfect spots...
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-4 px-4 py-2 bg-white rounded-full border border-slate-100 shadow-sm">
+                          <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            Processing
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* RIGHT: List Loading Placeholder */}
+                    <motion.div
+                      key="map-loading-right"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                      className="lg:col-span-4 h-full flex flex-col rounded-[2.5rem] border border-slate-200/80 bg-white overflow-hidden shadow-sm"
+                    >
+                      {/* Skeleton Header */}
+                      <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-32 bg-slate-100" />
+                          <Skeleton className="h-3 w-24 bg-slate-50" />
+                        </div>
+                        <Skeleton className="h-8 w-8 rounded-full bg-slate-100" />
+                      </div>
+
+                      {/* Skeleton List Items */}
+                      <div className="p-4 space-y-3 overflow-hidden">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex gap-4"
+                          >
+                            <Skeleton className="w-8 h-8 rounded-lg bg-slate-200 shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton className="h-4 w-3/4 bg-slate-200" />
+                              <Skeleton className="h-3 w-1/2 bg-slate-100" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </>
+                ) : /* ---------------- 2. ACTIVE STATE (Map + List) ---------------- */
+                weatherPayload?.location?.lat ? (
+                  <>
+                    {/* LEFT: Map Area */}
+                    <motion.div
+                      key="map-active"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.4 }}
+                      className="lg:col-span-8 h-full rounded-[2.5rem] overflow-hidden border border-slate-200/80 shadow-sm bg-slate-100 relative group"
+                    >
+                      <MapView
+                        lat={weatherPayload.location.lat}
+                        lon={weatherPayload.location.lon}
+                        label={locationLabel}
+                        pins={aiPins}
+                        selectedIndex={activePinIndex}
+                        zoom={13}
+                        heightClassName="h-full w-full"
+                      />
+
+                      {/* Floating overlay controls */}
+                      <div className="absolute top-4 left-4 z-[400] flex gap-2">
+                        <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold text-slate-700 shadow-lg border border-white/50">
+                          {aiPins.length} Spots Found
+                        </div>
+                      </div>
+
+                      {/* Reset Button (Only shows when a pin is active) */}
+                      <AnimatePresence>
+                        {activePinIndex !== null && (
+                          <motion.button
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            onClick={() => setActivePinIndex(null)}
+                            className="absolute top-4 right-4 z-[400] bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold text-white shadow-xl border border-white/10 hover:bg-black transition-all flex items-center gap-2"
+                          >
+                            <span>← View All</span>
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+
+                    {/* RIGHT: Interactive Sidebar List */}
+                    <motion.div
+                      key="list-active"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.4, delay: 0.1 }}
+                      className="lg:col-span-4 h-full flex flex-col rounded-[2.5rem] border border-slate-200/80 bg-white overflow-hidden shadow-[0_4px_20px_rgb(0,0,0,0.03)]"
+                    >
+                      {/* Header */}
+                      <div className="px-6 py-5 border-b border-slate-50 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-extrabold text-slate-900 text-base">
+                              Curated Spots
+                            </h3>
+                            {aiPins.length > 0 && (
+                              <span className="px-2.5 py-1 rounded-full bg-slate-900 text-white text-[10px] font-bold tracking-wider shadow-md shadow-slate-200">
+                                {aiPins.length} FOUND
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium mt-0.5">
+                            AI Recommended locations
+                          </p>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                          <MapIcon className="w-4 h-4" />
+                        </div>
+                      </div>
+
+                      {/* Scrollable List */}
+                      <div className="p-4 overflow-y-auto flex-1 bg-slate-50/50 space-y-3 custom-scrollbar">
+                        {aiPins.length > 0 ? (
+                          aiPins.map((pin, i) => {
+                            const isActive = activePinIndex === i;
+                            return (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                key={i}
+                                onClick={() => setActivePinIndex(i)}
+                                className={`group relative p-4 rounded-2xl border cursor-pointer transition-all duration-300 ${
+                                  isActive
+                                    ? "bg-white border-emerald-500/40 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/20 z-10"
+                                    : "bg-white border-slate-100/80 hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5"
+                                }`}
+                              >
+                                <div className="flex gap-4 items-start">
+                                  {/* Number Badge */}
+                                  <div
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold transition-all mt-0.5 ${
+                                      isActive
+                                        ? "bg-emerald-500 text-white shadow-md shadow-emerald-200"
+                                        : "bg-slate-100 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600"
+                                    }`}
+                                  >
+                                    {i + 1}
+                                  </div>
+
+                                  {/* Text Content */}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex justify-between items-start gap-2">
+                                      <h4
+                                        className={`text-sm font-bold truncate ${
+                                          isActive
+                                            ? "text-slate-900"
+                                            : "text-slate-700 group-hover:text-slate-900"
+                                        }`}
+                                      >
+                                        {pin.label}
+                                      </h4>
+                                      {pin.category && (
+                                        <span className="text-[10px] font-semibold bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded border border-slate-100">
+                                          {pin.category}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                                      {pin.popup}
+                                    </p>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            );
+                          })
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-60">
+                            <Loader2 className="w-8 h-8 text-slate-300 animate-spin mb-3" />
+                            <p className="text-sm font-semibold text-slate-400">
+                              Analyzing map data...
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                ) : (
+                  /* ---------------- 3. EMPTY STATE (Compact Banner) ---------------- */
+                  <motion.div
+                    key="map-empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="col-span-1 lg:col-span-12 relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-200 p-8 sm:p-12 shadow-sm"
+                  >
+                    {/* Subtle Background Pattern */}
+                    <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                      {/* Left Text */}
+                      <div className="text-center md:text-left max-w-lg">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider mb-4">
+                          <Sparkles className="w-3 h-3" />
+                          AI Map Generator
+                        </div>
+                        <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
+                          Discover hidden gems.
+                        </h3>
+                        <p className="text-slate-500 leading-relaxed text-sm sm:text-base">
+                          Search for a city above, and we'll generate an
+                          interactive map with curated spots, local food, and
+                          activities tailored to the weather.
+                        </p>
+                      </div>
+
+                      {/* Right Quick Actions */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-0 sm:mr-2">
+                          Try:
+                        </div>
+                        {["Pokhara", "Kathmandu", "Bhaktapur"].map((city) => (
+                          <button
+                            key={city}
+                            onClick={() => {
+                              setQuery(city);
+                              run(city);
+                            }}
+                            className="group cursor-pointer relative px-6 py-3 bg-white hover:bg-slate-50 rounded-2xl text-sm font-bold text-slate-700 shadow-sm border border-slate-200 transition-all hover:-translate-y-1 hover:shadow-md hover:border-emerald-200 active:scale-95"
+                          >
+                            <span className="relative z-10 flex items-center gap-2">
+                              <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                              {city}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* CHARTS */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1157,8 +1524,8 @@ export default function DashboardPage() {
               loadingSuggestion={loadingSuggestion}
               suggestion={suggestion}
               bestDaysChips={bestDaysChips}
-              quickActivities={quickActivities}
-              quickPacking={quickPacking}
+              quickActivities={activitiesList}
+              quickPacking={packingList}
               vibeOneLine={vibeOneLine}
               aiSections={aiSections}
             />
