@@ -22,7 +22,6 @@ export type Pin = {
 };
 
 // --- Icons ---
-// 1. Standard Blue Icon (Main Location)
 const DefaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
   iconRetinaUrl:
@@ -34,7 +33,6 @@ const DefaultIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-// 2. Red Icon (Suggestions)
 const RedIcon = L.icon({
   iconUrl:
     "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
@@ -138,13 +136,16 @@ export default function MapView({
     return [28.3949, 84.124];
   }, [hasMain, lat, lon]);
 
+  const mapKey = hasMain ? `${lat}-${lon}` : "default-map-key";
+
   return (
     <div
-      className={`w-full ${heightClassName} rounded-[2rem] overflow-hidden border border-slate-200 relative z-0`}
+      className={`w-full ${heightClassName} rounded-md overflow-hidden border border-slate-200 relative z-0`}
     >
       <style>{`.leaflet-container img { max-width: none !important; }`}</style>
 
       <MapContainer
+        key={mapKey}
         center={center}
         zoom={hasMain ? zoom : 7}
         scrollWheelZoom={false}
