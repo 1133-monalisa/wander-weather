@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Navbar from "@/components/landing-page/Navbar";
+import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
 import Footer from "@/components/landing-page/Footer";
-import { Mood, MOOD_THEMES } from "@/lib/mood";
+import { useDashboardMood } from "@/hooks/useDashboardMood";
 import { useWeather } from "@/hooks/useWeather";
 import { useRouter } from "next/navigation";
 
@@ -16,11 +16,9 @@ import { DailyForecast } from "@/components/dashboard/DailyForecast";
 import { AiPlanSection } from "@/components/dashboard/AiPlanSection";
 
 export default function DashboardPage() {
-  const [mood, setMood] = useState<Mood>("calm");
   const [isVerified, setIsVerified] = useState(false);
   const router = useRouter();
-
-  const theme = MOOD_THEMES[mood];
+  const { mood, theme, changeMood } = useDashboardMood();
 
   // Auth Check
   useEffect(() => {
@@ -40,14 +38,7 @@ export default function DashboardPage() {
     };
     verifySession();
 
-    const saved = localStorage.getItem("userMood") as Mood | null;
-    if (saved && MOOD_THEMES[saved]) setMood(saved);
   }, [router]);
-
-  const changeMood = (newMood: Mood) => {
-    setMood(newMood);
-    localStorage.setItem("userMood", newMood);
-  };
 
   // Logic Hook
   const {
@@ -77,12 +68,7 @@ export default function DashboardPage() {
     <div
       className={`min-h-screen ${theme.pageBg} transition-colors duration-700 antialiased font-sans selection:${theme.accentBg} selection:text-white`}
     >
-      <Navbar
-        mood={mood}
-        theme={theme}
-        onChangeMood={changeMood}
-        variant="dashboard"
-      />
+      <DashboardNavbar mood={mood} theme={theme} onChangeMood={changeMood} />
 
       <main className="pt-22 md:pt-24">
         <DashboardHeader

@@ -16,3 +16,12 @@ export interface UserProfile {
   displayName?: string | null;
   createdAt?: any; 
 }
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  senderId: string;
+  senderName?: string | null;
+  recipientId: string;
+  createdAt?: any;
+}

@@ -85,7 +85,6 @@ useEffect(() => {
         mood={mood}
         theme={theme}
         onChangeMood={changeMood}
-        variant="landing"
       />
 
       <main className="pt-22 md:pt-24">
