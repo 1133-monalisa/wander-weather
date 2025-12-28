@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { useDashboardMood } from "@/hooks/useDashboardMood";
 
-export default function MessagesPage() {
+function MessagesPageContent() {
   const [isVerified, setIsVerified] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -67,5 +67,13 @@ export default function MessagesPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <MessagesPageContent />
+    </Suspense>
   );
 }
