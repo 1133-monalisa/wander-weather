@@ -7,96 +7,39 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
 import {
   MessageCircle,
   Search,
   Send,
   ChevronRight,
   ArrowLeft,
-  Loader2,
-  MessagesSquare,
 } from "lucide-react";
+import { Circles, ThreeDots } from "react-loader-spinner";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase/config";
-import {
-  createConversationId,
-  ensureConversation,
-  markConversationRead,
-  sendChatMessage,
-  subscribeToMessages,
-} from "@/lib/firebase/chat";
+import { createConversationId, sendChatMessage } from "@/lib/firebase/chat";
 import { MOOD_THEMES, type MoodTheme } from "@/lib/mood";
-import type { ChatMessage, UserProfile } from "@/types/firebase";
+import type { UserProfile } from "@/types/firebase";
+import {
+  formatDay,
+  formatTime,
+  getDisplayName,
+  getInitials,
+  isSameDay,
+  toMillis,
+} from "./chatUtils";
+import {
+  useChatUsers,
+  useConversationList,
+  useConversationMessages,
+  useConversationReadReceipts,
+} from "./useChatData";
+import { Comment } from "react-loader-spinner";
 
 type ChatPanelProps = {
   locationLabel?: string;
   activeUserId?: string | null;
   onActiveUserChange?: (userId: string | null) => void;
   theme?: MoodTheme;
-};
-
-const getDisplayName = (profile: UserProfile) =>
-  profile.displayName?.trim() || profile.email || "Traveler";
-
-const getInitials = (name: string) => {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-  const initials = `${first}${last}`.toUpperCase();
-  return initials || "?";
-};
-
-const toDate = (value: any): Date | null => {
-  if (!value) return null;
-  if (typeof value?.toDate === "function") return value.toDate();
-  if (value instanceof Date) return value;
-  return null;
-};
-
-const toMillis = (value: any) => {
-  const d = toDate(value);
-  return d ? d.getTime() : 0;
-};
-
-const formatTime = (value?: any) => {
-  const d = toDate(value);
-  if (!d) return "";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-};
-
-const formatDay = (value?: any) => {
-  const d = toDate(value);
-  if (!d) return "";
-  const now = new Date();
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
-  const startOfThat = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round(
-    (startOfToday.getTime() - startOfThat.getTime()) / 86400000
-  );
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  return d.toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
-
-const isSameDay = (a: any, b: any) => {
-  const da = toDate(a);
-  const db = toDate(b);
-  if (!da || !db) return false;
-  return (
-    da.getFullYear() === db.getFullYear() &&
-    da.getMonth() === db.getMonth() &&
-    da.getDate() === db.getDate()
-  );
 };
 
 function SkeletonRow() {
@@ -118,154 +61,52 @@ export function ChatPanel({
   theme,
 }: ChatPanelProps) {
   const resolvedTheme = theme ?? MOOD_THEMES.calm;
-  const { user, loading } = useAuth();
-
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [usersLoading, setUsersLoading] = useState(true);
-  const [usersError, setUsersError] = useState("");
+  const { user, loading: authLoading } = useAuth();
+  const { users, usersLoading, usersError } = useChatUsers(user, authLoading);
+  const {
+    conversationByPartner,
+    recentChatIds,
+    getReadAtMs,
+    setLocalReadByPartner,
+  } = useConversationList(user?.uid);
 
   const [activeUser, setActiveUser] = useState<UserProfile | null>(null);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [messagesByConversation, setMessagesByConversation] = useState<
-    Record<string, ChatMessage[]>
-  >({});
-  const [localReadByPartner, setLocalReadByPartner] = useState<
-    Record<string, number>
-  >({});
-  const [messagesLoading, setMessagesLoading] = useState(false);
-
   const [messageText, setMessageText] = useState("");
-  const [messageError, setMessageError] = useState("");
   const [sending, setSending] = useState(false);
 
   const [search, setSearch] = useState("");
-  const [recentChatIds, setRecentChatIds] = useState<string[]>([]);
-  const [conversationByPartner, setConversationByPartner] = useState<
-    Record<
-      string,
-      {
-        lastMessageAt: any;
-        lastMessageSenderId?: string;
-        readAt?: any;
-        lastText?: string;
-      }
-    >
-  >({});
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const messagesByConversationRef = useRef<Record<string, ChatMessage[]>>({});
-  const conversationByPartnerRef = useRef<
-    Record<
-      string,
-      {
-        lastMessageAt: any;
-        lastMessageSenderId?: string;
-        readAt?: any;
-        lastText?: string;
-      }
-    >
-  >({});
-  const lastMarkedReadRef = useRef<Record<string, number>>({});
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   const isControlled = typeof activeUserId !== "undefined";
 
-  // --- Load users ---
-  useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      setUsers([]);
-      setUsersLoading(false);
-      return;
-    }
+  const conversationId = useMemo(() => {
+    if (!user || !activeUser) return "";
+    return createConversationId(user.uid, activeUser.uid);
+  }, [user, activeUser]);
 
-    setUsersLoading(true);
-    setUsersError("");
-    const usersRef = collection(db, "users");
+  const conversationSummary = activeUser?.uid
+    ? conversationByPartner[activeUser.uid]
+    : undefined;
 
-    const unsubscribe = onSnapshot(
-      usersRef,
-      (snapshot) => {
-        const nextUsers = snapshot.docs.map((docSnap) => {
-          const data = docSnap.data() as UserProfile;
-          return { ...data, uid: data.uid ?? docSnap.id };
-        });
-        setUsers(nextUsers);
-        setUsersLoading(false);
-      },
-      () => {
-        setUsersError("Unable to load travelers.");
-        setUsersLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user, loading]);
-
-  // --- Conversation summaries ---
-  useEffect(() => {
-    if (!user?.uid) {
-      setRecentChatIds([]);
-      setConversationByPartner({});
-      setLocalReadByPartner({});
-      lastMarkedReadRef.current = {};
-      return;
-    }
-
-    const conversationsRef = collection(db, "conversations");
-    const conversationsQuery = query(
-      conversationsRef,
-      where("participants", "array-contains", user.uid)
-    );
-
-    return onSnapshot(conversationsQuery, (snapshot) => {
-      const summaries: Record<
-        string,
-        {
-          lastMessageAt: any;
-          lastMessageSenderId?: string;
-          readAt?: any;
-          lastText?: string;
-        }
-      > = {};
-      const ordered: Array<{ partnerId: string; lastMessageAt: any }> = [];
-
-      snapshot.docs.forEach((docSnap) => {
-        const data = docSnap.data() as Record<string, any>;
-        const participants = Array.isArray(data.participants)
-          ? data.participants
-          : [];
-        const partnerId = participants.find((id: string) => id !== user.uid);
-        if (!partnerId) return;
-
-        const lastMessageAt = data.lastMessageAt ?? null;
-        summaries[partnerId] = {
-          lastMessageAt,
-          lastMessageSenderId: data.lastMessageSenderId,
-          readAt: data.readBy?.[user.uid] ?? null,
-          lastText:
-            typeof data.lastText === "string" ? data.lastText : undefined,
-        };
-
-        if (lastMessageAt) ordered.push({ partnerId, lastMessageAt });
-      });
-
-      ordered.sort(
-        (a, b) => toMillis(b.lastMessageAt) - toMillis(a.lastMessageAt)
-      );
-      setConversationByPartner(summaries);
-      setRecentChatIds(ordered.map((entry) => entry.partnerId));
+  const { messages, messagesLoading, messageError, setMessageError } =
+    useConversationMessages({
+      conversationId,
+      userId: user?.uid,
+      activeUserId: activeUser?.uid,
+      hasConversation: Boolean(conversationSummary),
     });
-  }, [user?.uid]);
 
-  useEffect(() => {
-    messagesByConversationRef.current = messagesByConversation;
-  }, [messagesByConversation]);
-
-  useEffect(() => {
-    conversationByPartnerRef.current = conversationByPartner;
-  }, [conversationByPartner]);
+  useConversationReadReceipts({
+    conversationId,
+    userId: user?.uid,
+    activeUserId: activeUser?.uid,
+    conversationSummary,
+    getReadAtMs,
+    setLocalReadByPartner,
+  });
 
   // --- Controlled/uncontrolled active user ---
   useEffect(() => {
@@ -327,116 +168,6 @@ export function ChatPanel({
     [filteredUsers, recentChatIdSet]
   );
 
-  // --- Conversation id ---
-  const conversationId = useMemo(() => {
-    if (!user || !activeUser) return "";
-    return createConversationId(user.uid, activeUser.uid);
-  }, [user, activeUser]);
-
-  // --- Subscribe to messages ---
-  useEffect(() => {
-    if (!conversationId || !user || !activeUser) {
-      setMessages([]);
-      setMessagesLoading(false);
-      return;
-    }
-
-    let isActive = true;
-    let unsubscribe = () => {};
-
-    const cached = messagesByConversationRef.current[conversationId];
-    if (cached?.length) {
-      setMessages(cached);
-      setMessagesLoading(false);
-    } else {
-      setMessages([]);
-      setMessagesLoading(true);
-    }
-
-    setMessageError("");
-
-    const startSubscription = () => {
-      if (!isActive) return;
-      unsubscribe = subscribeToMessages(
-        conversationId,
-        (nextMessages) => {
-          setMessages(nextMessages);
-          setMessagesLoading(false);
-          setMessagesByConversation((prev) => ({
-            ...prev,
-            [conversationId]: nextMessages,
-          }));
-        },
-        () => {
-          setMessageError("Unable to load messages.");
-          setMessagesLoading(false);
-        }
-      );
-    };
-
-    const hasConversation = Boolean(
-      conversationByPartnerRef.current[activeUser.uid]
-    );
-
-    if (hasConversation) {
-      startSubscription();
-    } else {
-      (async () => {
-        try {
-          await ensureConversation(conversationId, [user.uid, activeUser.uid]);
-        } catch {
-          if (isActive) {
-            setMessageError("Unable to start chat.");
-            setMessagesLoading(false);
-          }
-          return;
-        }
-        startSubscription();
-      })();
-    }
-
-    return () => {
-      isActive = false;
-      unsubscribe();
-    };
-  }, [conversationId, user, activeUser]);
-
-  // --- Mark read ---
-  useEffect(() => {
-    if (!conversationId || !user || !activeUser) return;
-
-    const summary = conversationByPartner[activeUser.uid];
-    if (!summary?.lastMessageAt) return;
-    if (summary.lastMessageSenderId !== activeUser.uid) return;
-
-    const lastMessageAtMs = toMillis(summary.lastMessageAt);
-    if (!lastMessageAtMs) return;
-
-    const readAtMs = Math.max(
-      localReadByPartner[activeUser.uid] ?? 0,
-      toMillis(summary.readAt)
-    );
-    if (lastMessageAtMs <= readAtMs) return;
-
-    setLocalReadByPartner((prev) => {
-      const current = prev[activeUser.uid] ?? 0;
-      if (current >= lastMessageAtMs) return prev;
-      return { ...prev, [activeUser.uid]: lastMessageAtMs };
-    });
-
-    const lastMarked = lastMarkedReadRef.current[activeUser.uid] ?? 0;
-    if (lastMarked >= lastMessageAtMs) return;
-
-    lastMarkedReadRef.current[activeUser.uid] = lastMessageAtMs;
-    markConversationRead(conversationId, user.uid).catch(() => {});
-  }, [
-    conversationId,
-    user,
-    activeUser,
-    conversationByPartner,
-    localReadByPartner,
-  ]);
-
   // --- Auto scroll ---
   useEffect(() => {
     if (!messages.length) return;
@@ -445,15 +176,6 @@ export function ChatPanel({
       block: "end",
     });
   }, [messages]);
-
-  const getReadAtMs = useCallback(
-    (partnerId: string) =>
-      Math.max(
-        localReadByPartner[partnerId] ?? 0,
-        toMillis(conversationByPartner[partnerId]?.readAt)
-      ),
-    [localReadByPartner, conversationByPartner]
-  );
 
   const activeLabel = activeUser ? getDisplayName(activeUser) : "Start a chat";
 
@@ -531,8 +253,8 @@ export function ChatPanel({
   const showChat = mobileView === "chat";
 
   return (
-    <div className={`h-full w-full ${resolvedTheme.surface}`}>
-      <div className="h-full max-w-7xl mx-auto">
+    <div className={`h-full max-w-7xl mx-auto ${resolvedTheme.surface}`}>
+      <div className="h-full mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] h-full">
           {/* LEFT */}
           <aside
@@ -591,7 +313,7 @@ export function ChatPanel({
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {loading || usersLoading ? (
+              {authLoading || usersLoading ? (
                 <div className="space-y-2">
                   <SkeletonRow />
                   <SkeletonRow />
@@ -624,7 +346,7 @@ export function ChatPanel({
                       : "";
                     const preview = conversation?.lastText?.trim();
 
-                    // ✅ ACTIVE STYLE: mood light bg, no shadow-xs/sm
+                    // ACTIVE STYLE: mood light bg, no shadow-xs/sm
                     const activeClasses = `${resolvedTheme.softAccentBg} border ${resolvedTheme.border}`;
 
                     return (
@@ -782,7 +504,7 @@ export function ChatPanel({
           {/* RIGHT */}
           <section
             className={[
-              "min-h-0 h-full bg-white/60",
+              "min-h-0 h-full bg-white/60 backdrop-blur supports-[backdrop-filter]:bg-white/40 border-l",
               "flex flex-col",
               showChat ? "flex" : "hidden lg:flex",
             ].join(" ")}
@@ -839,11 +561,11 @@ export function ChatPanel({
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto bg-slate-50/40 px-4 sm:px-5 py-4">
-              {loading ? (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading chat...
+            <div className="flex-1 overflow-y-auto bg-slate-50/40 p-4">
+              {authLoading ? (
+                <div className="h-full flex items-center gap-3 text-sm text-slate-500">
+                  <ThreeDots height={24} width={48} color="#0D1AA8" />
+                  <span className="font-semibold">Connecting to chat…</span>
                 </div>
               ) : !user ? (
                 <div className="h-full flex items-center justify-center text-slate-600">
@@ -852,7 +574,7 @@ export function ChatPanel({
               ) : !activeUser ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 gap-3 px-6">
                   <div className="h-14 w-14 rounded-3xl bg-white border border-slate-200 flex items-center justify-center">
-                    <MessageCircle className="w-6 h-6 text-slate-300" />
+                    <Comment width={50} height={50} />
                   </div>
                   <p className="text-sm font-semibold text-slate-700">
                     Select a traveler to open a conversation
@@ -862,9 +584,9 @@ export function ChatPanel({
                   </p>
                 </div>
               ) : messagesLoading ? (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading messages...
+                <div className="h-full flex items-center justify-center gap-3 text-sm text-slate-500">
+                  <ThreeDots height={24} width={48} color="#0D1AA8" />
+                  <span className="font-semibold">Loading messages…</span>
                 </div>
               ) : messages.length ? (
                 <div className="space-y-0">
@@ -934,7 +656,7 @@ export function ChatPanel({
                   <div
                     className={`h-12 w-12 rounded-2xl ${resolvedTheme.softAccentBg} ${resolvedTheme.accentText} flex items-center justify-center`}
                   >
-                    <MessagesSquare className="h-5 w-5" />
+                    <Comment width={50} height={50} />
                   </div>
                   <p className="mt-4 text-base font-extrabold text-slate-900">
                     Start the conversation
@@ -948,7 +670,12 @@ export function ChatPanel({
 
             {/* Composer */}
             <div
-              className={`border-t ${resolvedTheme.border} bg-white/90 backdrop-blur px-3 sm:px-4 py-3`}
+              className={[
+                "sticky bottom-0 z-20",
+                `border-t ${resolvedTheme.border}`,
+                "bg-white/95 backdrop-blur",
+                "px-3 sm:px-4 pt-3",
+              ].join(" ")}
             >
               {messageError && (
                 <div className="mb-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700">
@@ -958,7 +685,7 @@ export function ChatPanel({
 
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="flex-1">
-                  <div className="rounded-3xl border border-slate-200 bg-white focus-within:ring-1 focus-within:ring-black/10 focus-within:border-slate-300">
+                  <div className="min-h-12 flex items-center rounded-3xl border border-slate-200 bg-white focus-within:ring-1 focus-within:ring-black/10 focus-within:border-slate-300">
                     <textarea
                       ref={composerRef}
                       value={messageText}
@@ -971,8 +698,14 @@ export function ChatPanel({
                       }
                       disabled={!activeUser || sending}
                       rows={1}
-                      className="w-full resize-none bg-transparent px-4 py-2 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:opacity-60"
-                      style={{ height: 44 }}
+                      className={[
+                        "block w-full resize-none bg-transparent",
+                        "px-4 py-3",
+                        "text-sm font-medium text-slate-900 placeholder:text-slate-400",
+                        "leading-5",
+                        "focus:outline-none disabled:opacity-60",
+                        "min-h-12 max-h-[160px]",
+                      ].join(" ")}
                     />
                   </div>
                 </div>
@@ -982,17 +715,18 @@ export function ChatPanel({
                   onClick={handleSend}
                   disabled={!activeUser || sending || !messageText.trim()}
                   className={[
-                    "h-11 rounded-2xl font-extrabold text-sm transition",
+                    "h-12 w-12 sm:w-auto sm:px-4",
+                    "rounded-2xl font-extrabold text-sm transition",
                     "inline-flex items-center justify-center gap-2",
                     resolvedTheme.accentBg,
                     "text-white hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed",
-                    "w-11 sm:w-auto sm:px-4",
+                    "shrink-0",
                   ].join(" ")}
                   aria-label="Send message"
                   title="Send"
                 >
                   {sending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Circles width={20} height={20} color="#ffffff" />
                   ) : (
                     <Send className="w-4 h-4" />
                   )}

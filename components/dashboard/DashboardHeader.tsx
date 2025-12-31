@@ -33,7 +33,7 @@ export function DashboardHeader({
   };
 
   return (
-    <section className="px-4 sm:px-6 md:px-8">
+    <section className="p-4">
       <div className="max-w-7xl mx-auto">
         <div className="sticky top-[72px] md:top-[80px] z-30">
           <div className="rounded-[2rem] border border-slate-200/80 bg-white/75 backdrop-blur-xl shadow-sm">

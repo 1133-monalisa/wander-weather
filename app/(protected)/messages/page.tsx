@@ -29,7 +29,7 @@ function MessagesPageContent() {
   );
 
   return (
-    <section className="h-[calc(100vh-8rem)] px-4 sm:px-6 md:px-8">
+    <section className="h-[calc(100vh-5rem)] p-4">
       <div className="h-full">
         <ChatPanel
           activeUserId={activeUserId}

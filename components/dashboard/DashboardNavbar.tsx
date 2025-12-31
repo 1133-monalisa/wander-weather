@@ -40,7 +40,13 @@ import { SMOOTH_EASE } from "@/lib/animation";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase/config";
 
-import { Check, LogOut, MessageCircle, User as UserIcon } from "lucide-react";
+import {
+  Check,
+  LogOut,
+  MessageCircle,
+  MoreVertical,
+  User as UserIcon,
+} from "lucide-react";
 
 interface DashboardNavbarProps {
   mood: Mood;
@@ -173,14 +179,14 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
 
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Messages */}
+            {/* Messages (desktop/tablet) */}
             <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
                     href="/messages"
                     aria-label="Open messages"
-                    className={`relative h-10 w-10 rounded-full border ${theme.border} flex items-center justify-center transition ${
+                    className={`relative h-10 w-10 rounded-full border ${theme.border} hidden sm:flex items-center justify-center transition ${
                       unreadCount
                         ? "bg-emerald-50 text-emerald-700"
                         : "bg-white text-slate-600 hover:bg-slate-50"
@@ -202,34 +208,46 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
               </Tooltip>
             </TooltipProvider>
 
-            {/* Mobile mood */}
+            {/* Mobile quick actions: messages + mood */}
             <div className="sm:hidden">
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="h-10 px-3 rounded-full flex items-center gap-2 max-w-[90px]"
-                    aria-label="Change mood"
+                    className="h-10 w-10 rounded-full border border-slate-200"
+                    aria-label="Open quick actions"
                   >
-                    {activeMoodMeta?.icon && (
-                      <activeMoodMeta.icon className="w-4 h-4" />
-                    )}
-                    <span className="text-sm font-semibold truncate">
-                      {activeMoodMeta?.name ?? "Mood"}
-                    </span>
+                    <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-
                 <DropdownMenuContent align="end" sideOffset={8} className="w-64">
                   <DropdownMenuLabel className="text-xs text-slate-500">
-                    Select mood
+                    Quick actions
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
+                  <DropdownMenuItem
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => router.push("/messages")}
+                  >
+                    <span className="flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4" />
+                      Messages
+                    </span>
+                    {unreadCount > 0 && (
+                      <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                        {unreadLabel}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-slate-500">
+                    Mood
+                  </DropdownMenuLabel>
                   {Object.entries(MOOD_THEMES).map(([key, m]) => {
                     const Icon = m.icon;
                     const isActive = mood === key;
-
                     return (
                       <DropdownMenuItem
                         key={key}
@@ -237,11 +255,10 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                         onClick={() => onChangeMood(key as Mood)}
                       >
                         <span
-                          className={`mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full border ${theme.border} ${theme.softAccentBg}`}
+                          className={`mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full border ${theme.border} ${theme.softAccentBg}`}
                         >
                           <Icon className="w-4 h-4" />
                         </span>
-
                         <span className="flex-1">
                           <span className="text-sm font-semibold flex items-center gap-2">
                             {m.name}
