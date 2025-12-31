@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
@@ -14,6 +14,17 @@ function ProtectedLayoutShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, loading, sessionVerified, sessionLoading } = useAuth();
   const { mood, theme, changeMood } = useDashboardMoodContext();
+  const navbar = (
+    <Suspense
+      fallback={
+        <div
+          className={`fixed top-0 w-full h-20 md:h-24 bg-white/80 backdrop-blur-xl border-b ${theme.border}`}
+        />
+      }
+    >
+      <DashboardNavbar mood={mood} theme={theme} onChangeMood={changeMood} />
+    </Suspense>
+  );
 
   const isChecking = loading || sessionLoading;
   const isAuthed = Boolean(user && sessionVerified);
@@ -30,7 +41,7 @@ function ProtectedLayoutShell({ children }: { children: React.ReactNode }) {
       <div
         className={`min-h-screen ${theme.pageBg} transition-colors duration-700 antialiased font-sans selection:${theme.accentBg} selection:text-white`}
       >
-        <DashboardNavbar mood={mood} theme={theme} onChangeMood={changeMood} />
+        {navbar}
 
         <main className="pt-20 md:pt-24">
           <div className="px-4 sm:px-6 md:px-8">
@@ -56,7 +67,7 @@ function ProtectedLayoutShell({ children }: { children: React.ReactNode }) {
     <div
       className={`min-h-screen ${theme.pageBg} transition-colors duration-700 antialiased font-sans selection:${theme.accentBg} selection:text-white`}
     >
-      <DashboardNavbar mood={mood} theme={theme} onChangeMood={changeMood} />
+      {navbar}
       <main className="pt-20 md:pt-24">{children}</main>
     </div>
   );
