@@ -1,46 +1,20 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import DashboardNavbar from "@/components/dashboard/DashboardNavbar";
-import Footer from "@/components/landing-page/Footer";
-import { useDashboardMood } from "@/hooks/useDashboardMood";
-import { useWeather } from "@/hooks/useWeather";
-import { useRouter } from "next/navigation";
+import React, { useMemo } from "react";
 
-// Extracted Components
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { MapSection } from "@/components/dashboard/MapSection";
 import { WeatherCharts } from "@/components/dashboard/WeatherCharts";
 import { DailyForecast } from "@/components/dashboard/DailyForecast";
 import { AiPlanSection } from "@/components/dashboard/AiPlanSection";
+import Footer from "@/components/landing-page/Footer";
+import { DashboardPageSkeleton } from "@/components/loading/DashboardPageSkeleton";
+import { useDashboardMoodContext } from "@/context/DashboardMoodContext";
+import { useWeather } from "@/hooks/useWeather";
 
 export default function DashboardPage() {
-  const [isVerified, setIsVerified] = useState(false);
-  const router = useRouter();
-  const { mood, theme, changeMood } = useDashboardMood();
-
-  // Auth Check
-  useEffect(() => {
-    const verifySession = async () => {
-      try {
-        const res = await fetch("/api/auth/verify-session");
-        const data = await res.json();
-        if (res.ok && data.isLogged) {
-          setIsVerified(true);
-        } else {
-          router.push("/auth/login");
-        }
-      } catch (err) {
-        console.error("Session verification failed", err);
-        router.push("/auth/login");
-      }
-    };
-    verifySession();
-
-  }, [router]);
-
-  // Logic Hook
+  const { theme } = useDashboardMoodContext();
   const {
     weatherPayload,
     suggestion,
@@ -62,23 +36,21 @@ export default function DashboardPage() {
     return parts.join(", ");
   }, [weatherPayload]);
 
-  if (!isVerified) return null;
+  const showSkeleton = loading && !weatherPayload;
 
   return (
-    <div
-      className={`min-h-screen ${theme.pageBg} transition-colors duration-700 antialiased font-sans selection:${theme.accentBg} selection:text-white`}
-    >
-      <DashboardNavbar mood={mood} theme={theme} onChangeMood={changeMood} />
+    <>
+      <DashboardHeader
+        onSearch={run}
+        locationLabel={locationLabel}
+        loading={loading}
+        error={error}
+        theme={theme}
+      />
 
-      <main className="pt-22 md:pt-24">
-        <DashboardHeader
-          onSearch={run}
-          locationLabel={locationLabel}
-          loading={loading}
-          error={error}
-          theme={theme}
-        />
-
+      {showSkeleton ? (
+        <DashboardPageSkeleton />
+      ) : (
         <section className="px-4 sm:px-6 md:px-8 pb-14">
           <div className="max-w-7xl mx-auto mt-6 space-y-8">
             <DailyForecast daily={weatherPayload?.weather?.daily} />
@@ -103,9 +75,9 @@ export default function DashboardPage() {
             />
           </div>
         </section>
-      </main>
+      )}
 
       <Footer theme={theme} />
-    </div>
+    </>
   );
 }

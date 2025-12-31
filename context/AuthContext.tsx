@@ -15,6 +15,8 @@ import Cookies from "js-cookie";
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
+  sessionVerified: boolean;
+  sessionLoading: boolean;
   logout: () => Promise<void>;
 };
 
@@ -23,6 +25,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionVerified, setSessionVerified] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
 
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, async (u) => {
@@ -30,9 +34,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const token = await u.getIdToken();
         Cookies.set("token", token, { expires: 1 });
         setUser(u);
+        setSessionVerified(false);
+        setSessionLoading(true);
       } else {
         Cookies.remove("token");
         setUser(null);
+        setSessionVerified(false);
+        setSessionLoading(false);
       }
       setLoading(false);
     });
@@ -40,11 +48,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    if (!user) return;
+
+    const verifySession = async () => {
+      setSessionLoading(true);
+      try {
+        const res = await fetch("/api/auth/verify-session");
+        const data = await res.json().catch(() => ({}));
+        if (!active) return;
+        setSessionVerified(Boolean(res.ok && (data as any)?.isLogged));
+      } catch {
+        if (active) setSessionVerified(false);
+      } finally {
+        if (active) setSessionLoading(false);
+      }
+    };
+
+    verifySession();
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
   const logout = async () => {
     await signOut(auth);
   };
 
-  const value = useMemo(() => ({ user, loading, logout }), [user, loading]);
+  const value = useMemo(
+    () => ({ user, loading, logout, sessionVerified, sessionLoading }),
+    [user, loading, sessionVerified, sessionLoading]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
