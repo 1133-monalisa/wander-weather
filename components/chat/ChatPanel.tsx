@@ -561,7 +561,7 @@ export function ChatPanel({
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto bg-slate-50/40 p-4">
+            <div className="flex-1 overflow-y-auto bg-slate-50/40 p-4 sm:pb-10 md:pb-4">
               {authLoading ? (
                 <div className="h-full flex items-center gap-3 text-sm text-slate-500">
                   <ThreeDots height={24} width={48} color="#0D1AA8" />
