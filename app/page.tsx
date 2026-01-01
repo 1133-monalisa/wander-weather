@@ -48,6 +48,43 @@ const AUTHENTIC_IMAGES = [
   },
 ];
 
+const DESTINATIONS = [
+  {
+    name: "Pokhara",
+    description:
+      "Lakeside sunsets, paragliding, and easy escapes to the hills.",
+    bestTime: "Oct–Apr",
+    tags: ["Views", "Relaxed", "Lakeside"],
+    image: "/images/pokhara.jpg",
+    featured: true,
+  },
+  {
+    name: "Kathmandu",
+    description: "Heritage alleys, rooftop cafés, and ancient temples.",
+    bestTime: "Sep–Nov",
+    tags: ["Culture", "Food", "History"],
+    image: "/images/kathmandu.jpg",
+    featured: false,
+  },
+  {
+    name: "Bhaktapur",
+    description: "A day-trip classic for pottery squares and Newari flavors.",
+    bestTime: "Oct–Feb",
+    tags: ["Day trip", "Craft", "Newari"],
+    image: "/images/bhaktapur.jpg",
+    featured: false,
+  },
+  {
+    name: "Chitwan",
+    description:
+      "Jungle safaris, river walks, and quiet mornings with wildlife.",
+    bestTime: "Nov–Mar",
+    tags: ["Nature", "Safari", "Family"],
+    image: "/images/chitwan.jpg",
+    featured: true,
+  },
+] as const;
+
 export default function Page() {
   const [mood, setMood] = useState<Mood>("calm");
   const [isMounted, setIsMounted] = useState(false);
@@ -57,14 +94,13 @@ export default function Page() {
     limit: 3,
   });
 
-useEffect(() => {
-  setTimeout(() => {
-    setIsMounted(true);
-    const saved = localStorage.getItem("userMood") as Mood | null;
-    if (saved && MOOD_THEMES[saved]) setMood(saved);
-  }, 0);
-}, []);
-
+  useEffect(() => {
+    setTimeout(() => {
+      setIsMounted(true);
+      const saved = localStorage.getItem("userMood") as Mood | null;
+      if (saved && MOOD_THEMES[saved]) setMood(saved);
+    }, 0);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -87,11 +123,7 @@ useEffect(() => {
     <div
       className={`min-h-screen ${theme.pageBg} transition-colors duration-700 antialiased font-sans selection:${theme.accentBg} selection:text-white`}
     >
-      <Navbar
-        mood={mood}
-        theme={theme}
-        onChangeMood={changeMood}
-      />
+      <Navbar mood={mood} theme={theme} onChangeMood={changeMood} />
 
       <main className="pt-22 md:pt-24">
         {/* HERO SECTION */}
@@ -669,6 +701,121 @@ useEffect(() => {
           </div>
         </section>
 
+        {/* DESTINATIONS SECTION */}
+        <section id="destinations" className="py-12 bg-white scroll-mt-20">
+          <div className="max-w-7xl mx-auto px-6">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={containerVariants}
+              className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10"
+            >
+              <div className="max-w-2xl">
+                <motion.div
+                  variants={itemVariants}
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${theme.softAccentBg} ${theme.accentText} text-xs font-bold uppercase tracking-wider mb-4`}
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  Destinations
+                </motion.div>
+                <motion.h2
+                  variants={itemVariants}
+                  className="text-3xl md:text-4xl font-bold text-slate-900 mb-3"
+                >
+                  Pick a place. We&apos;ll build the plan.
+                </motion.h2>
+                <motion.p
+                  variants={itemVariants}
+                  className="text-base text-slate-500"
+                >
+                  A few Nepal favorites to start with—each one tuned for
+                  weather, culture, and the vibe you want.
+                </motion.p>
+              </div>
+
+              <motion.div variants={itemVariants} className="flex items-center">
+                <Link
+                  href="/auth/login"
+                  className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg ${theme.accentBg}`}
+                >
+                  Plan a destination
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={containerVariants}
+              className="grid grid-cols-1 md:grid-cols-12 gap-6"
+            >
+              {DESTINATIONS.map((d) => (
+                <motion.article
+                  key={d.name}
+                  variants={itemVariants}
+                  className={`group relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-slate-900 shadow-sm hover:shadow-2xl transition-all duration-500 min-h-[320px] ${
+                    d.featured ? "md:col-span-7" : "md:col-span-5"
+                  }`}
+                >
+                  <div className="absolute inset-0 opacity-80 group-hover:opacity-90 transition-opacity">
+                    <Image
+                      src={d.image}
+                      alt={`${d.name} in Nepal`}
+                      fill
+                      className="object-cover group-hover:scale-[1.03] transition-transform duration-700"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                  </div>
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
+
+                  <div className="absolute top-5 left-5 right-5 flex items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur border border-white/15">
+                        <Calendar className="w-3.5 h-3.5" />
+                        Best: {d.bestTime}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 p-7">
+                    <h3 className="text-2xl font-bold text-white tracking-tight">
+                      {d.name}
+                    </h3>
+                    <p className="mt-2 text-sm text-white/80 max-w-xl">
+                      {d.description}
+                    </p>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {d.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/90 border border-white/10"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-6">
+                      <Link
+                        href="/auth/login"
+                        className="inline-flex items-center gap-2 rounded-full bg-white text-slate-900 px-5 py-2.5 text-sm font-bold shadow-lg hover:bg-slate-100 transition-colors"
+                      >
+                        Plan this trip
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </motion.article>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+
         {/* CULTURAL SECTION */}
         <section id="cultural-guide" className="py-12 bg-white scroll-mt-20">
           <div className="max-w-7xl mx-auto px-6">
@@ -817,7 +964,10 @@ useEffect(() => {
         </section>
 
         {/* REVIEWS SECTION */}
-        <section id="reviews" className="py-12 bg-slate-50 relative scroll-mt-20">
+        <section
+          id="reviews"
+          className="py-12 bg-slate-50 relative scroll-mt-20"
+        >
           <div className="max-w-7xl mx-auto px-6">
             <motion.div
               initial="hidden"
