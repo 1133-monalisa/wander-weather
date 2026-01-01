@@ -46,6 +46,7 @@ import {
   MessageCircle,
   MoreVertical,
   User as UserIcon,
+  Bookmark,
 } from "lucide-react";
 
 interface DashboardNavbarProps {
@@ -142,13 +143,15 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
 
   const activeMoodMeta = MOOD_THEMES[mood];
   const unreadLabel = unreadCount > 9 ? "9+" : `${unreadCount}`;
+  const isMessagesActive = pathname === "/messages";
+  const isSavedTripsActive = pathname === "/saved-trips";
 
   return (
     <>
       <nav
         className={`fixed top-0 w-full z-50 transition-colors duration-500 bg-white/80 backdrop-blur-xl border-b ${theme.border}`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto p-2 md:p-2 lg:p-0 h-20 flex items-center justify-between gap-3">
           {/* Brand */}
           <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
             <div
@@ -186,10 +189,12 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                   <Link
                     href="/messages"
                     aria-label="Open messages"
-                    className={`relative h-10 w-10 rounded-full border ${theme.border} hidden sm:flex items-center justify-center transition ${
-                      unreadCount
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-white text-slate-600 hover:bg-slate-50"
+                  className={`relative h-10 w-10 rounded-full border ${theme.border} hidden sm:flex items-center justify-center transition ${
+                      isMessagesActive
+                        ? `${theme.accentBg} text-white shadow-md`
+                        : unreadCount
+                          ? `${theme.softAccentBg} ${theme.accentText}`
+                          : "bg-white text-slate-600 hover:bg-slate-50"
                     }`}
                   >
                     <MessageCircle className="w-5 h-5" />
@@ -204,6 +209,28 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                   {unreadCount > 0
                     ? `Messages (${unreadCount} new)`
                     : "Messages"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Saved trips (desktop/tablet) */}
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/saved-trips"
+                    aria-label="Open saved trips"
+                  className={`relative h-10 w-10 rounded-full border ${theme.border} hidden sm:flex items-center justify-center transition ${
+                      isSavedTripsActive
+                        ? `${theme.accentBg} text-white shadow-md`
+                        : "bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Bookmark className="w-5 h-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs font-medium">
+                  Saved trips
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -239,6 +266,16 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                         {unreadLabel}
                       </span>
                     )}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => router.push("/saved-trips")}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Bookmark className="w-4 h-4" />
+                      Saved trips
+                    </span>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />

@@ -25,3 +25,23 @@ export interface ChatMessage {
   recipientId: string;
   createdAt?: any;
 }
+
+export type TripPin = {
+  lat: number;
+  lon: number;
+  label?: string;
+  popup?: string;
+  category?: "food" | "activity" | "stay";
+};
+
+export interface Trip {
+  id: string;
+  userId: string;
+  locationLabel: string;
+  createdAt?: any;
+  weatherPayload: import("@/types/weather").WeatherPayload | null;
+  suggestion: string;
+  activities: string[];
+  packing: string[];
+  aiPins: TripPin[];
+}

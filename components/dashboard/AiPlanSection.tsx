@@ -10,28 +10,16 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, CalendarDays, CheckCircle2 } from "lucide-react";
-import { AiSection } from "@/types/weather";
-
-interface AiPlanProps {
-  locationLabel: string;
-  loading: boolean;
-  suggestion: string;
-  aiSections: AiSection[];
-  quickActivities: string[];
-  quickPacking: string[];
-  bestDaysChips: string[];
-  vibeOneLine: string;
-}
-
-// Helper to extract sections passed from parent
-// You can also move splitAiIntoSections call inside here if you prefer passing raw string
-
+import { Button } from "@/components/ui/button";
 import {
-  splitAiIntoSections,
-  extractBestDaysChips,
-  mdToItems,
-} from "@/lib/ai-parsing";
+  Loader2,
+  CalendarDays,
+  CheckCircle2,
+  Bookmark,
+  BookmarkCheck,
+} from "lucide-react";
+import { splitAiIntoSections, extractBestDaysChips } from "@/lib/ai-parsing";
+import type { MoodTheme } from "@/lib/mood";
 
 export function AiPlanSection({
   locationLabel,
@@ -39,14 +27,27 @@ export function AiPlanSection({
   suggestion,
   activities,
   packing,
+  onSaveTrip,
+  savingTrip = false,
+  savedTrip = false,
+  theme,
 }: {
   locationLabel: string;
   loading: boolean;
   suggestion: string;
   activities: string[];
   packing: string[];
+  onSaveTrip?: () => void;
+  savingTrip?: boolean;
+  savedTrip?: boolean;
+  theme?: MoodTheme;
 }) {
   const hasPlan = !!suggestion;
+  const saveButtonClasses = theme
+    ? savedTrip
+      ? `${theme.softAccentBg} ${theme.accentText} border-transparent`
+      : `${theme.accentBg} text-white border-transparent shadow-sm cursor-pointer`
+    : "";
 
   // Parse on the fly
   const aiSections = splitAiIntoSections(suggestion);
@@ -94,6 +95,22 @@ export function AiPlanSection({
                   : "Search a place to generate your plan."}
               </CardDescription>
             </div>
+            {hasPlan && locationLabel && onSaveTrip && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSaveTrip}
+                disabled={savingTrip || savedTrip}
+                className={saveButtonClasses}
+              >
+                {savedTrip ? (
+                  <BookmarkCheck className="h-4 w-4" />
+                ) : (
+                  <Bookmark className="h-4 w-4" />
+                )}
+                {savedTrip ? "Saved" : savingTrip ? "Saving..." : "Save trip"}
+              </Button>
+            )}
           </div>
 
           {hasPlan && (vibeOneLine || bestDaysChips.length > 0) && (
@@ -142,7 +159,7 @@ export function AiPlanSection({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Sticky: Quick Picks */}
             <div className="lg:col-span-4 lg:sticky lg:top-[110px] space-y-6">
-              <div className="rounded-2xl border bg-white p-5 space-y-4">
+              <div className="rounded-2xl border bg-white space-y-4 p-2">
                 <h3 className="text-base font-extrabold text-slate-900">
                   Quick picks
                 </h3>
@@ -196,7 +213,7 @@ export function AiPlanSection({
               {structured.map((s) => (
                 <div
                   key={s.key}
-                  className="rounded-2xl border bg-white p-5 sm:p-6"
+                  className="rounded-2xl border bg-white p-2"
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center">

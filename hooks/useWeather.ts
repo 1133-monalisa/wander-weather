@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { WeatherPayload } from "@/types/weather";
+import type { Trip } from "@/types/firebase";
 
 // --- FIX: Import from the correct files ---
 import { normalizeAiToMarkdown } from "@/lib/ai-parsing";
@@ -88,6 +89,17 @@ export function useWeather() {
     if (w) await fetchSuggestion(w);
   }
 
+  function applyTrip(trip: Trip) {
+    setError("");
+    setWeatherPayload(trip.weatherPayload ?? null);
+    setSuggestion(trip.suggestion ?? "");
+    setActivitiesList(trip.activities ?? []);
+    setPackingList(trip.packing ?? []);
+    setAiPins(trip.aiPins ?? []);
+    setLoadingWeather(false);
+    setLoadingSuggestion(false);
+  }
+
   return {
     weatherPayload,
     suggestion,
@@ -99,6 +111,7 @@ export function useWeather() {
     activitiesList,
     packingList,
     run,
+    applyTrip,
     setError,
   };
 }

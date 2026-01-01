@@ -6,21 +6,37 @@ import {
   Loader2,
   ChevronRight,
   AlertTriangle,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DashboardHeaderProps {
   onSearch: (query: string) => void;
+  onSaveTrip?: () => void;
   locationLabel: string;
   loading: boolean;
+  savingTrip?: boolean;
+  savedTrip?: boolean;
+  saveDisabled?: boolean;
   error: string;
   theme: any;
 }
 
 export function DashboardHeader({
   onSearch,
+  onSaveTrip,
   locationLabel,
   loading,
+  savingTrip = false,
+  savedTrip = false,
+  saveDisabled = false,
   error,
   theme,
 }: DashboardHeaderProps) {
@@ -53,26 +69,71 @@ export function DashboardHeader({
                   </div>
                 </div>
 
-                {/* Refresh Button */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    locationLabel && onSearch(locationLabel.split(",")[0])
-                  }
-                  disabled={loading || !locationLabel}
-                  className={`h-10 px-3 rounded-full bg-white border border-slate-200 text-slate-900 font-bold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2 ${
-                    loading || !locationLabel
-                      ? "opacity-60 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
+                <div className="flex items-center gap-2">
+                  {/* Refresh icon */}
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            locationLabel && onSearch(locationLabel.split(",")[0])
+                          }
+                          disabled={loading || !locationLabel}
+                          aria-label="Refresh weather"
+                          className={`h-10 w-10 rounded-full bg-white border ${theme.border} text-slate-600 flex items-center justify-center transition-colors ${
+                            loading || !locationLabel
+                              ? "opacity-60 cursor-not-allowed"
+                              : `hover:${theme.softAccentBg} hover:${theme.accentText} cursor-pointer`
+                          }`}
+                        >
+                          {loading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs font-medium">
+                        Refresh
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  {/* Save trip icon */}
+                  {onSaveTrip && (
+                    <TooltipProvider delayDuration={0}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={onSaveTrip}
+                            disabled={saveDisabled || savingTrip || savedTrip}
+                            aria-label={savedTrip ? "Trip saved" : "Save trip"}
+                          className={`h-10 w-10 rounded-full bg-white border ${theme.border} flex items-center justify-center transition-colors ${
+                            savedTrip
+                              ? `${theme.softAccentBg} ${theme.accentText}`
+                              : "text-slate-600"
+                          } ${
+                            saveDisabled || savingTrip || savedTrip
+                              ? "opacity-60 cursor-not-allowed"
+                              : `hover:${theme.softAccentBg} hover:${theme.accentText} cursor-pointer`
+                          }`}
+                          >
+                            {savedTrip ? (
+                              <BookmarkCheck className="w-4 h-4" />
+                            ) : (
+                              <Bookmark className="w-4 h-4" />
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs font-medium">
+                          {savedTrip ? "Saved" : savingTrip ? "Saving..." : "Save trip"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
+                </div>
               </div>
 
               <form
