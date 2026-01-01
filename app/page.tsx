@@ -20,6 +20,7 @@ import {
   Bot,
   Sun,
   Landmark,
+  Star,
 } from "lucide-react";
 
 import { Mood, MOOD_THEMES } from "@/lib/mood";
@@ -33,6 +34,8 @@ import {
 import Navbar from "@/components/landing-page/Navbar";
 import Marquee from "@/components/shared/Marqee";
 import Footer from "@/components/landing-page/Footer";
+import { RatingStars } from "@/components/reviews/RatingStars";
+import { useReviews } from "@/hooks/useReviews";
 
 const AUTHENTIC_IMAGES = [
   {
@@ -50,6 +53,9 @@ export default function Page() {
   const [isMounted, setIsMounted] = useState(false);
 
   const [authenticIndex, setAuthenticIndex] = useState(0);
+  const { reviews: landingReviews, loading: reviewsLoading } = useReviews({
+    limit: 3,
+  });
 
 useEffect(() => {
   setTimeout(() => {
@@ -134,7 +140,7 @@ useEffect(() => {
                 className="flex flex-wrap items-center gap-4"
               >
                 <Link
-                  href="/auth/register"
+                  href="/auth/login"
                   className={`h-12 px-8 rounded-full text-white font-semibold text-base shadow-lg shadow-slate-200 hover:shadow-xl transition-all hover:-translate-y-1 flex items-center justify-center ${theme.accentBg}`}
                 >
                   Start Planning Free
@@ -690,12 +696,12 @@ useEffect(() => {
               whileInView="visible"
               viewport={VIEWPORT_CONFIG}
               variants={containerVariants}
-              className="grid md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]"
+              className="grid auto-rows-[minmax(220px,auto)] md:grid-cols-4 md:grid-rows-2 gap-4 md:h-[600px]"
             >
               {/* Big Heritage Image */}
               <motion.div
                 variants={itemVariants}
-                className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-3xl bg-slate-900 shadow-lg"
+                className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-3xl bg-slate-900 shadow-lg min-h-[260px] sm:min-h-[320px]"
               >
                 <div className="absolute inset-0 opacity-60 group-hover:scale-105 transition-transform duration-700">
                   <Image
@@ -725,7 +731,7 @@ useEffect(() => {
               {/* Authentic Tastes – now with 2-image slider (Juju Dhau + Momos) */}
               <motion.div
                 variants={itemVariants}
-                className="md:col-span-2 relative group overflow-hidden rounded-3xl shadow-lg"
+                className="md:col-span-2 relative group overflow-hidden rounded-3xl shadow-lg min-h-[240px] sm:min-h-[280px]"
               >
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -765,7 +771,7 @@ useEffect(() => {
               {/* Traditions */}
               <motion.div
                 variants={itemVariants}
-                className="relative group overflow-hidden rounded-3xl shadow-sm border border-slate-200"
+                className="relative group overflow-hidden rounded-3xl shadow-sm border border-slate-200 min-h-[220px] sm:min-h-[260px]"
               >
                 <div className="absolute inset-0">
                   <Image
@@ -790,7 +796,7 @@ useEffect(() => {
               {/* Hidden Nature */}
               <motion.div
                 variants={itemVariants}
-                className="relative group overflow-hidden rounded-3xl bg-slate-900 shadow-sm"
+                className="relative group overflow-hidden rounded-3xl bg-slate-900 shadow-sm min-h-[220px] sm:min-h-[260px]"
               >
                 <div className="absolute inset-0 opacity-80">
                   <Image
@@ -807,6 +813,90 @@ useEffect(() => {
                 </div>
               </motion.div>
             </motion.div>
+          </div>
+        </section>
+
+        {/* REVIEWS SECTION */}
+        <section id="reviews" className="py-12 bg-slate-50 relative scroll-mt-20">
+          <div className="max-w-7xl mx-auto px-6">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_CONFIG}
+              variants={containerVariants}
+              className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between mb-10"
+            >
+              <div className="max-w-2xl">
+                <motion.h2
+                  variants={itemVariants}
+                  className="text-3xl md:text-4xl font-bold text-slate-900 mb-3"
+                >
+                  Traveler stories that feel real.
+                </motion.h2>
+                <motion.p
+                  variants={itemVariants}
+                  className="text-base text-slate-500"
+                >
+                  Reviews from people who just explored Nepal. Read the
+                  highlights, then jump into chat to swap tips.
+                </motion.p>
+              </div>
+
+              <motion.div variants={itemVariants}>
+                <Link
+                  href="/reviews"
+                  className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg ${theme.accentBg}`}
+                >
+                  Explore all reviews
+                  <Star className="w-4 h-4" />
+                </Link>
+              </motion.div>
+            </motion.div>
+
+            {reviewsLoading && !landingReviews.length ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm animate-pulse"
+                  >
+                    <div className="h-4 w-24 bg-slate-200 rounded mb-4" />
+                    <div className="h-4 w-3/4 bg-slate-200 rounded mb-3" />
+                    <div className="h-20 w-full bg-slate-100 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : landingReviews.length ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {landingReviews.map((review) => (
+                  <motion.article
+                    key={review.id}
+                    variants={itemVariants}
+                    className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-slate-500">
+                        {review.userName}
+                      </span>
+                      <RatingStars value={review.rating} size={14} />
+                    </div>
+                    <h3 className="mt-3 text-lg font-bold text-slate-900">
+                      {review.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-600 line-clamp-4">
+                      {review.experience}
+                    </p>
+                    <div className="mt-4 text-xs font-semibold text-slate-500">
+                      {review.locationLabel}
+                    </div>
+                  </motion.article>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+                No reviews yet. Be the first to share your Nepal story.
+              </div>
+            )}
           </div>
         </section>
 
@@ -878,7 +968,7 @@ useEffect(() => {
 
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Link
-                      href="/auth/register"
+                      href="/auth/login"
                       className="w-full sm:w-auto h-14 px-10 rounded-full bg-white text-slate-900 font-bold text-lg hover:scale-105 transition-transform shadow-xl flex items-center justify-center gap-2"
                     >
                       Start Planning

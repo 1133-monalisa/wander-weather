@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-html{
+html {
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
 }
@@ -9,6 +9,40 @@ html{
 ::selection {
   background: #3390ff;
   color: #ffffff;
+}
+
+/* === SCROLLBARS === */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.6) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(100, 116, 139, 0.6),
+    rgba(71, 85, 105, 0.6)
+  );
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(71, 85, 105, 0.8),
+    rgba(30, 41, 59, 0.8)
+  );
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -125,34 +159,114 @@ html{
 }
 
 /* === MOOD: CALM === */
-.mood-calm:root { --mood-accent: oklch(0.646 0.222 41.116); }
-.mood-calm.dark { --mood-accent: oklch(0.696 0.17 162.48); }
-.mood-calm .bg-gradient { background: linear-gradient(to bottom right, oklch(0.95 0.02 220), oklch(0.95 0.02 260)); }
-.mood-calm.dark .bg-gradient { background: linear-gradient(to bottom right, oklch(0.15 0.03 220), oklch(0.15 0.03 260)); }
+.mood-calm:root {
+  --mood-accent: oklch(0.646 0.222 41.116);
+}
+.mood-calm.dark {
+  --mood-accent: oklch(0.696 0.17 162.48);
+}
+.mood-calm .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.95 0.02 220),
+    oklch(0.95 0.02 260)
+  );
+}
+.mood-calm.dark .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.15 0.03 220),
+    oklch(0.15 0.03 260)
+  );
+}
 
 /* === MOOD: ENERGETIC === */
-.mood-energetic:root { --mood-accent: oklch(0.828 0.189 84.429); }
-.mood-energetic.dark { --mood-accent: oklch(0.769 0.188 70.08); }
-.mood-energetic .bg-gradient { background: linear-gradient(to bottom right, oklch(0.95 0.03 60), oklch(0.95 0.03 90)); }
-.mood-energetic.dark .bg-gradient { background: linear-gradient(to bottom right, oklch(0.15 0.04 60), oklch(0.15 0.04 90)); }
+.mood-energetic:root {
+  --mood-accent: oklch(0.828 0.189 84.429);
+}
+.mood-energetic.dark {
+  --mood-accent: oklch(0.769 0.188 70.08);
+}
+.mood-energetic .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.95 0.03 60),
+    oklch(0.95 0.03 90)
+  );
+}
+.mood-energetic.dark .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.15 0.04 60),
+    oklch(0.15 0.04 90)
+  );
+}
 
 /* === MOOD: ROMANTIC === */
-.mood-romantic:root { --mood-accent: oklch(0.769 0.188 70.08); }
-.mood-romantic.dark { --mood-accent: oklch(0.645 0.246 16.439); }
-.mood-romantic .bg-gradient { background: linear-gradient(to bottom right, oklch(0.95 0.03 330), oklch(0.95 0.03 10)); }
-.mood-romantic.dark .bg-gradient { background: linear-gradient(to bottom right, oklch(0.15 0.04 330), oklch(0.15 0.04 10)); }
+.mood-romantic:root {
+  --mood-accent: oklch(0.769 0.188 70.08);
+}
+.mood-romantic.dark {
+  --mood-accent: oklch(0.645 0.246 16.439);
+}
+.mood-romantic .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.95 0.03 330),
+    oklch(0.95 0.03 10)
+  );
+}
+.mood-romantic.dark .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.15 0.04 330),
+    oklch(0.15 0.04 10)
+  );
+}
 
 /* === MOOD: ADVENTUROUS === */
-.mood-adventurous:root { --mood-accent: oklch(0.398 0.07 227.392); }
-.mood-adventurous.dark { --mood-accent: oklch(0.488 0.243 264.376); }
-.mood-adventurous .bg-gradient { background: linear-gradient(to bottom right, oklch(0.95 0.03 160), oklch(0.95 0.03 190)); }
-.mood-adventurous.dark .bg-gradient { background: linear-gradient(to bottom right, oklch(0.15 0.04 160), oklch(0.15 0.04 190)); }
+.mood-adventurous:root {
+  --mood-accent: oklch(0.398 0.07 227.392);
+}
+.mood-adventurous.dark {
+  --mood-accent: oklch(0.488 0.243 264.376);
+}
+.mood-adventurous .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.95 0.03 160),
+    oklch(0.95 0.03 190)
+  );
+}
+.mood-adventurous.dark .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.15 0.04 160),
+    oklch(0.15 0.04 190)
+  );
+}
 
 /* === MOOD: COZY === */
-.mood-cozy:root { --mood-accent: oklch(0.6 0.118 184.704); }
-.mood-cozy.dark { --mood-accent: oklch(0.627 0.265 303.9); }
-.mood-cozy .bg-gradient { background: linear-gradient(to bottom right, oklch(0.95 0.03 40), oklch(0.95 0.03 70)); }
-.mood-cozy.dark .bg-gradient { background: linear-gradient(to bottom right, oklch(0.15 0.04 40), oklch(0.15 0.04 70)); }
+.mood-cozy:root {
+  --mood-accent: oklch(0.6 0.118 184.704);
+}
+.mood-cozy.dark {
+  --mood-accent: oklch(0.627 0.265 303.9);
+}
+.mood-cozy .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.95 0.03 40),
+    oklch(0.95 0.03 70)
+  );
+}
+.mood-cozy.dark .bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.15 0.04 40),
+    oklch(0.15 0.04 70)
+  );
+}
 
 /* === BASE STYLES === */
 @layer base {
@@ -165,6 +279,12 @@ html{
 }
 
 /* === UTILITIES === */
-.bg-mood-accent { background-color: var(--mood-accent); }
-.text-mood-accent { color: var(--mood-accent); }
-.border-mood-accent { border-color: var(--mood-accent); }
+.bg-mood-accent {
+  background-color: var(--mood-accent);
+}
+.text-mood-accent {
+  color: var(--mood-accent);
+}
+.border-mood-accent {
+  border-color: var(--mood-accent);
+}

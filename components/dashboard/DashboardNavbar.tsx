@@ -47,6 +47,7 @@ import {
   MoreVertical,
   User as UserIcon,
   Bookmark,
+  Star,
 } from "lucide-react";
 
 interface DashboardNavbarProps {
@@ -145,6 +146,7 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
   const unreadLabel = unreadCount > 9 ? "9+" : `${unreadCount}`;
   const isMessagesActive = pathname === "/messages";
   const isSavedTripsActive = pathname === "/saved-trips";
+  const isReviewsActive = pathname === "/reviews";
 
   return (
     <>
@@ -235,6 +237,28 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
               </Tooltip>
             </TooltipProvider>
 
+            {/* Reviews (desktop/tablet) */}
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/reviews"
+                    aria-label="Open traveler reviews"
+                    className={`relative h-10 w-10 rounded-full border ${theme.border} hidden sm:flex items-center justify-center transition ${
+                      isReviewsActive
+                        ? `${theme.accentBg} text-white shadow-md`
+                        : "bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Star className="w-5 h-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs font-medium">
+                  Reviews
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             {/* Mobile quick actions: messages + mood */}
             <div className="sm:hidden">
               <DropdownMenu modal={false}>
@@ -275,6 +299,16 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                     <span className="flex items-center gap-2">
                       <Bookmark className="w-4 h-4" />
                       Saved trips
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => router.push("/reviews")}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Star className="w-4 h-4" />
+                      Reviews
                     </span>
                   </DropdownMenuItem>
 

@@ -45,3 +45,15 @@ export interface Trip {
   packing: string[];
   aiPins: TripPin[];
 }
+
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail?: string | null;
+  locationLabel: string;
+  title: string;
+  experience: string;
+  rating: number;
+  createdAt?: any;
+}

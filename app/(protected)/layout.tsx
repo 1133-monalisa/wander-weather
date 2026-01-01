@@ -33,7 +33,7 @@ function ProtectedLayoutShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isChecking) return;
     if (!isAuthed) {
-      router.replace("/auth/login");
+      router.replace("/");
     }
   }, [isChecking, isAuthed, router]);
 

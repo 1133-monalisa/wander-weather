@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { MOOD_THEMES, Mood, MoodTheme } from "@/lib/mood";
 import { SMOOTH_EASE } from "@/lib/animation";
 
-import { Check, PlaneTakeoff } from "lucide-react";
+import { Check, Menu, PlaneTakeoff, X } from "lucide-react";
 
 interface NavbarProps {
   mood: Mood;
@@ -35,6 +35,8 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ mood, theme, onChangeMood }) => {
   const activeMoodMeta = MOOD_THEMES[mood];
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navItems = ["Features", "Destinations", "Cultural Guide", "Reviews"];
 
   return (
     <motion.nav
@@ -74,17 +76,15 @@ const Navbar: React.FC<NavbarProps> = ({ mood, theme, onChangeMood }) => {
 
         {/* Nav links: landing (desktop) */}
         <div className="hidden md:flex items-center gap-8">
-          {["Features", "Destinations", "Cultural Guide", "Stories"].map(
-            (item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase().replace(/\s/g, "-")}`}
-                className={`font-medium ${theme.mutedText} hover:${theme.heading} transition-colors`}
-              >
-                {item}
-              </a>
-            )
-          )}
+          {navItems.map((item) => (
+            <a
+              key={item}
+              href={`#${item.toLowerCase().replace(/\s/g, "-")}`}
+              className={`font-medium ${theme.mutedText} hover:${theme.heading} transition-colors`}
+            >
+              {item}
+            </a>
+          ))}
         </div>
 
         {/* Right side */}
@@ -145,6 +145,20 @@ const Navbar: React.FC<NavbarProps> = ({ mood, theme, onChangeMood }) => {
             </DropdownMenu>
           </div>
 
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            className={`sm:hidden h-10 w-10 rounded-full border ${theme.border} bg-white/80 text-slate-700 inline-flex items-center justify-center`}
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          >
+            {mobileMenuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </button>
+
           {/* Desktop mood: pill selector */}
           <div
             className={`hidden sm:flex ${theme.softAccentBg} backdrop-blur p-1 rounded-full border ${theme.border} transition-colors duration-500`}
@@ -182,32 +196,47 @@ const Navbar: React.FC<NavbarProps> = ({ mood, theme, onChangeMood }) => {
           <>
             {/* Desktop: full button */}
             <Link
-              href="/auth/register"
+              href="/auth/login"
               className={`hidden lg:flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white shadow-lg transition-all active:scale-95 ${theme.accentBg}`}
             >
               Start Planning
             </Link>
-
-            {/* Mobile: icon */}
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/auth/register"
-                    className={`lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-full text-white shadow-md active:scale-95 transition ${theme.accentBg}`}
-                    aria-label="Start Planning"
-                  >
-                    <PlaneTakeoff className="w-5 h-5" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs font-medium">
-                  Start Planning
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </>
         </div>
       </div>
+
+      {/* Mobile menu panel */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden fixed inset-0 z-40">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu"
+          />
+          <div className="absolute top-20 left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-slate-200 px-6 py-6">
+            <div className="grid gap-4">
+              {navItems.map((item) => (
+                <a
+                  key={item}
+                  href={`#${item.toLowerCase().replace(/\s/g, "-")}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-semibold text-slate-800"
+                >
+                  {item}
+                </a>
+              ))}
+              <Link
+                href="/auth/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`mt-2 inline-flex items-center justify-center h-11 rounded-full text-sm font-semibold text-white shadow-lg ${theme.accentBg}`}
+              >
+                Start Planning
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.nav>
   );
 };
