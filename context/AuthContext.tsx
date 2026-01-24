@@ -6,11 +6,13 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useCallback,
 } from "react";
 import type { User } from "firebase/auth";
 import { onIdTokenChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import Cookies from "js-cookie";
+import { Toaster } from "react-hot-toast";
 
 type AuthContextValue = {
   user: User | null;
@@ -18,6 +20,8 @@ type AuthContextValue = {
   sessionVerified: boolean;
   sessionLoading: boolean;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  profileVersion: number;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -27,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [sessionVerified, setSessionVerified] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [profileVersion, setProfileVersion] = useState(0);
 
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, async (u) => {
@@ -34,11 +39,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const token = await u.getIdToken();
         Cookies.set("token", token, { expires: 1 });
         setUser(u);
+        setProfileVersion((v) => v + 1);
         setSessionVerified(false);
         setSessionLoading(true);
       } else {
         Cookies.remove("token");
         setUser(null);
+        setProfileVersion((v) => v + 1);
         setSessionVerified(false);
         setSessionLoading(false);
       }
@@ -73,16 +80,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [user]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await signOut(auth);
-  };
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    if (!auth.currentUser) return;
+    setUser(auth.currentUser);
+    setProfileVersion((v) => v + 1);
+  }, []);
 
   const value = useMemo(
-    () => ({ user, loading, logout, sessionVerified, sessionLoading }),
-    [user, loading, sessionVerified, sessionLoading]
+    () => ({
+      user,
+      loading,
+      logout,
+      refreshUser,
+      profileVersion,
+      sessionVerified,
+      sessionLoading,
+    }),
+    [
+      user,
+      loading,
+      logout,
+      refreshUser,
+      profileVersion,
+      sessionVerified,
+      sessionLoading,
+    ],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <Toaster position="top-center" reverseOrder={false} />
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

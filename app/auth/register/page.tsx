@@ -46,6 +46,7 @@ export default function RegisterPage(): JSX.Element {
         uid: user.uid,
         email: user.email ?? null,
         displayName: data.displayName ?? null,
+        photoURL: user.photoURL ?? null,
         createdAt: serverTimestamp(),
       };
 

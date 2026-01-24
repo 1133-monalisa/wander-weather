@@ -392,7 +392,12 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                     className="hidden lg:flex rounded-full px-4 font-semibold"
                     disabled={loading}
                   >
-                    <UserIcon className="w-4 h-4 mr-2" />
+                    <Avatar className="w-6 h-6 mr-2">
+                      <AvatarImage src={user?.photoURL ?? ""} alt={displayName} />
+                      <AvatarFallback className="text-[10px] font-bold">
+                        {loading ? "..." : initials}
+                      </AvatarFallback>
+                    </Avatar>
                     {loading ? "Loading..." : displayName}
                   </Button>
 
@@ -405,7 +410,7 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                   >
                     <Avatar className="w-9 h-9">
                       <AvatarImage
-                        src={(user as any)?.photoURL ?? ""}
+                        src={user?.photoURL ?? ""}
                         alt={displayName}
                       />
                       <AvatarFallback className="text-xs font-bold">
@@ -418,11 +423,31 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
 
               <DropdownMenuContent align="end" sideOffset={8} className="w-64">
                 <DropdownMenuLabel className="space-y-1">
-                  <div className="text-sm font-bold">{displayName}</div>
-                  <div className="text-xs text-slate-500 font-medium">
-                    {user?.email ?? ""}
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-9 h-9">
+                      <AvatarImage src={user?.photoURL ?? ""} alt={displayName} />
+                      <AvatarFallback className="text-xs font-bold">
+                        {loading ? "..." : initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold truncate">
+                        {displayName}
+                      </div>
+                      <div className="text-xs text-slate-500 font-medium truncate">
+                        {user?.email ?? ""}
+                      </div>
+                    </div>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => router.push("/profile")}
+                >
+                  <UserIcon className="w-4 h-4 mr-2" />
+                  Profile
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer"
