@@ -35,26 +35,7 @@ function SafeAvatarImage({ src, alt }: { src?: string | null; alt: string }) {
   return <AvatarImage src={src} alt={alt} className="object-cover" />;
 }
 
-function StatusPill({ dirty }: { dirty: boolean }) {
-  return (
-    <span
-      className={[
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors",
-        dirty
-          ? "border-amber-200 bg-amber-50 text-amber-700"
-          : "border-emerald-200 bg-emerald-50 text-emerald-700",
-      ].join(" ")}
-    >
-      <span
-        className={[
-          "h-2 w-2 rounded-full",
-          dirty ? "bg-amber-500 animate-pulse" : "bg-emerald-500",
-        ].join(" ")}
-      />
-      {dirty ? "Unsaved Changes" : "Synced"}
-    </span>
-  );
-}
+
 
 function SectionTitle({
   icon,
@@ -174,7 +155,6 @@ export default function ProfilePage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <StatusPill dirty={isDirty} />
               <Button
                 variant="outline"
                 size="sm"
@@ -329,6 +309,7 @@ export default function ProfilePage() {
                     onClick={() => {
                       setDisplayName(user?.displayName ?? "");
                       setSelectedPhotoURL(user?.photoURL ?? null);
+                      toast.success("Changes discarded.");
                     }}
                     disabled={!isDirty || saving}
                   >
