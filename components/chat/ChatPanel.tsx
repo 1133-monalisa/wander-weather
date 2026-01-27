@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { createConversationId, sendChatMessage } from "@/lib/firebase/chat";
 import { MOOD_THEMES, type MoodTheme } from "@/lib/mood";
 import type { UserProfile } from "@/types/firebase";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   formatDay,
   formatTime,
@@ -41,6 +42,27 @@ type ChatPanelProps = {
   onActiveUserChange?: (userId: string | null) => void;
   theme?: MoodTheme;
 };
+
+function UserAvatar({
+  label,
+  src,
+  className,
+  fallbackClassName,
+}: {
+  label: string;
+  src?: string | null;
+  className?: string;
+  fallbackClassName?: string;
+}) {
+  return (
+    <Avatar className={className}>
+      {src ? <AvatarImage src={src} alt={label} /> : null}
+      <AvatarFallback className={fallbackClassName}>
+        {getInitials(label)}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
 
 function SkeletonRow() {
   return (
@@ -364,15 +386,16 @@ export function ChatPanel({
                         ].join(" ")}
                       >
                         <div className="flex items-center gap-3 p-3">
-                          <div
-                            className={[
-                              "h-11 w-11 rounded-2xl flex items-center justify-center font-extrabold text-xs",
+                          <UserAvatar
+                            label={label}
+                            src={profile.photoURL}
+                            className="h-11 w-11 rounded-2xl"
+                            fallbackClassName={[
+                              "font-extrabold text-xs rounded-2xl",
                               resolvedTheme.softAccentBg,
                               resolvedTheme.accentText,
                             ].join(" ")}
-                          >
-                            {getInitials(label)}
-                          </div>
+                          />
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
@@ -446,15 +469,16 @@ export function ChatPanel({
                         ].join(" ")}
                       >
                         <div className="flex items-center gap-3 p-3">
-                          <div
-                            className={[
-                              "h-11 w-11 rounded-2xl flex items-center justify-center font-extrabold text-xs",
+                          <UserAvatar
+                            label={label}
+                            src={profile.photoURL}
+                            className="h-11 w-11 rounded-2xl"
+                            fallbackClassName={[
+                              "font-extrabold text-xs rounded-2xl",
                               resolvedTheme.softAccentBg,
                               resolvedTheme.accentText,
                             ].join(" ")}
-                          >
-                            {getInitials(label)}
-                          </div>
+                          />
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
@@ -525,19 +549,18 @@ export function ChatPanel({
                       <ArrowLeft className="h-4 w-4 text-slate-700" />
                     </button>
 
-                    <div
-                      className={[
-                        "h-11 w-11 rounded-2xl flex items-center justify-center font-extrabold text-xs",
-                        activeUser
-                          ? resolvedTheme.softAccentBg
-                          : "bg-slate-100",
+                    <UserAvatar
+                      label={activeLabel}
+                      src={activeUser?.photoURL}
+                      className="h-11 w-11 rounded-2xl"
+                      fallbackClassName={[
+                        "font-extrabold text-xs rounded-2xl",
+                        activeUser ? resolvedTheme.softAccentBg : "bg-slate-100",
                         activeUser
                           ? resolvedTheme.accentText
                           : "text-slate-500",
                       ].join(" ")}
-                    >
-                      {getInitials(activeLabel)}
-                    </div>
+                    />
 
                     <div className="min-w-0">
                       <p className="text-sm font-extrabold text-slate-900 truncate">
@@ -593,6 +616,8 @@ export function ChatPanel({
                   {messages.map((message, idx) => {
                     const isMine = message.senderId === user?.uid;
                     const prev = messages[idx - 1];
+                    const isGroupStart =
+                      idx === 0 || prev?.senderId !== message.senderId;
 
                     const showDay =
                       !prev?.createdAt ||
@@ -620,6 +645,24 @@ export function ChatPanel({
                             isMine ? "justify-end" : "justify-start"
                           } ${topSpacing}`}
                         >
+                          {!isMine && (
+                            <div className="w-8 shrink-0 mr-2">
+                              {isGroupStart ? (
+                                <UserAvatar
+                                  label={activeLabel}
+                                  src={activeUser?.photoURL}
+                                  className="h-8 w-8 rounded-2xl"
+                                  fallbackClassName={[
+                                    "font-extrabold text-[10px] rounded-2xl",
+                                    resolvedTheme.softAccentBg,
+                                    resolvedTheme.accentText,
+                                  ].join(" ")}
+                                />
+                              ) : (
+                                <div className="h-8 w-8" aria-hidden="true" />
+                              )}
+                            </div>
+                          )}
                           <div className="max-w-[78%] sm:max-w-[70%]">
                             {/* Bubble */}
                             <div
