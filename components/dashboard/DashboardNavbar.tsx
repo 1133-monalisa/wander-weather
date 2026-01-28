@@ -148,6 +148,22 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
   const isSavedTripsActive = pathname === "/saved-trips";
   const isReviewsActive = pathname === "/reviews";
 
+  const navItems = [
+    {
+      href: "/messages",
+      label: "Messages",
+      active: isMessagesActive,
+      badge: unreadCount > 0 ? unreadLabel : null,
+    },
+    {
+      href: "/saved-trips",
+      label: "Saved trips",
+      active: isSavedTripsActive,
+      badge: null,
+    },
+    { href: "/reviews", label: "Reviews", active: isReviewsActive, badge: null },
+  ] as const;
+
   return (
     <>
       <nav
@@ -182,85 +198,32 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
             </div>
           </Link>
 
+          {/* Nav links: dashboard (desktop) */}
+          <div className="hidden md:flex items-center gap-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`font-medium transition-colors flex items-center gap-2 ${
+                  item.active
+                    ? `${theme.heading} font-semibold`
+                    : `${theme.mutedText} hover:${theme.heading}`
+                }`}
+              >
+                {item.label}
+                {item.badge && (
+                  <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </div>
+
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Messages (desktop/tablet) */}
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/messages"
-                    aria-label="Open messages"
-                  className={`relative h-10 w-10 rounded-full border ${theme.border} hidden sm:flex items-center justify-center transition ${
-                      isMessagesActive
-                        ? `${theme.accentBg} text-white shadow-md`
-                        : unreadCount
-                          ? `${theme.softAccentBg} ${theme.accentText}`
-                          : "bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
-                        {unreadLabel}
-                      </span>
-                    )}
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs font-medium">
-                  {unreadCount > 0
-                    ? `Messages (${unreadCount} new)`
-                    : "Messages"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            {/* Saved trips (desktop/tablet) */}
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/saved-trips"
-                    aria-label="Open saved trips"
-                  className={`relative h-10 w-10 rounded-full border ${theme.border} hidden sm:flex items-center justify-center transition ${
-                      isSavedTripsActive
-                        ? `${theme.accentBg} text-white shadow-md`
-                        : "bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Bookmark className="w-5 h-5" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs font-medium">
-                  Saved trips
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            {/* Reviews (desktop/tablet) */}
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/reviews"
-                    aria-label="Open traveler reviews"
-                    className={`relative h-10 w-10 rounded-full border ${theme.border} hidden sm:flex items-center justify-center transition ${
-                      isReviewsActive
-                        ? `${theme.accentBg} text-white shadow-md`
-                        : "bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Star className="w-5 h-5" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs font-medium">
-                  Reviews
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
             {/* Mobile quick actions: messages + mood */}
-            <div className="sm:hidden">
+            <div className="md:hidden">
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
