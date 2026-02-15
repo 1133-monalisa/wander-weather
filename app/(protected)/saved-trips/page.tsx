@@ -25,13 +25,13 @@ export default function SavedTripsPage() {
 
   // Filter trips based on search
   const filteredTrips = trips.filter((trip) =>
-    trip.locationLabel?.toLowerCase().includes(searchQuery.toLowerCase())
+    trip.locationLabel?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
     <main className="min-h-screen p-4">
       <section className="p-4">
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="max-w-[90rem] mx-auto space-y-8">
           {/* Hero Header Section */}
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 
@@ -104,7 +105,7 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
     const conversationsRef = collection(db, "conversations");
     const conversationsQuery = query(
       conversationsRef,
-      where("participants", "array-contains", user.uid)
+      where("participants", "array-contains", user.uid),
     );
 
     const activeChatUserId =
@@ -138,7 +139,7 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
 
         setUnreadCount(count);
       },
-      () => setUnreadCount(0)
+      () => setUnreadCount(0),
     );
   }, [user?.uid, pathname, searchParams]);
 
@@ -161,7 +162,12 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
       active: isSavedTripsActive,
       badge: null,
     },
-    { href: "/reviews", label: "Reviews", active: isReviewsActive, badge: null },
+    {
+      href: "/reviews",
+      label: "Reviews",
+      active: isReviewsActive,
+      badge: null,
+    },
   ] as const;
 
   return (
@@ -169,22 +175,16 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
       <nav
         className={`fixed top-0 w-full z-50 transition-colors duration-500 bg-white/80 backdrop-blur-xl border-b ${theme.border}`}
       >
-        <div className="max-w-7xl mx-auto p-2 md:p-2 lg:p-0 h-20 flex items-center justify-between gap-3">
+        <div className="max-w-[90rem] mx-auto p-2 md:p-2 lg:p-0 h-20 flex items-center justify-between gap-3">
           {/* Brand */}
           <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`w-10 h-10 rounded-xl ${theme.accentBg} text-white flex items-center justify-center shadow-lg transition-colors duration-500 flex-shrink-0`}
-            >
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
+            <Image
+              src="/logo/logo.jpg"
+              alt="Wander Weather logo"
+              width={200}
+              height={200}
+              className="h-10 w-10 md:h-16 md:w-16 rounded-full object-contain"
+            />
 
             <div className="min-w-0">
               <span
@@ -234,7 +234,11 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" sideOffset={8} className="w-64">
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-64"
+                >
                   <DropdownMenuLabel className="text-xs text-slate-500">
                     Quick actions
                   </DropdownMenuLabel>
@@ -356,7 +360,10 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                     disabled={loading}
                   >
                     <Avatar className="w-6 h-6 mr-2">
-                      <AvatarImage src={user?.photoURL ?? ""} alt={displayName} />
+                      <AvatarImage
+                        src={user?.photoURL ?? ""}
+                        alt={displayName}
+                      />
                       <AvatarFallback className="text-[10px] font-bold">
                         {loading ? "..." : initials}
                       </AvatarFallback>
@@ -388,7 +395,10 @@ const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
                 <DropdownMenuLabel className="space-y-1">
                   <div className="flex items-center gap-3">
                     <Avatar className="w-9 h-9">
-                      <AvatarImage src={user?.photoURL ?? ""} alt={displayName} />
+                      <AvatarImage
+                        src={user?.photoURL ?? ""}
+                        alt={displayName}
+                      />
                       <AvatarFallback className="text-xs font-bold">
                         {loading ? "..." : initials}
                       </AvatarFallback>

@@ -35,8 +35,6 @@ function SafeAvatarImage({ src, alt }: { src?: string | null; alt: string }) {
   return <AvatarImage src={src} alt={alt} className="object-cover" />;
 }
 
-
-
 function SectionTitle({
   icon,
   title,
@@ -141,7 +139,7 @@ export default function ProfilePage() {
           <div className="h-64 w-full bg-gradient-to-b from-black/[0.03] to-transparent" />
         </div>
 
-        <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-8 sm:px-6 lg:overflow-hidden">
+        <div className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-4 py-8 sm:px-6 lg:overflow-hidden">
           {/* Header */}
           <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-end sm:justify-between">
             <div>
