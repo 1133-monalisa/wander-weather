@@ -33,11 +33,7 @@ export default function DashboardPage() {
     run,
     applyTrip,
   } = useWeather();
-  const {
-    trips,
-    saving: tripsSaving,
-    saveTrip,
-  } = useTrips(user?.uid);
+  const { trips, saving: tripsSaving, saveTrip } = useTrips(user?.uid);
   const appliedTripRef = useRef<string | null>(null);
   const tripId = searchParams.get("trip");
 
@@ -53,13 +49,13 @@ export default function DashboardPage() {
 
   const showSkeleton = loading && !weatherPayload;
   const hasSavableTrip = Boolean(
-    user && weatherPayload && locationLabel && suggestion
+    user && weatherPayload && locationLabel && suggestion,
   );
   const isTripSaved = useMemo(() => {
     if (!locationLabel || !suggestion) return false;
     return trips.some(
       (trip) =>
-        trip.locationLabel === locationLabel && trip.suggestion === suggestion
+        trip.locationLabel === locationLabel && trip.suggestion === suggestion,
     );
   }, [trips, locationLabel, suggestion]);
 
@@ -104,7 +100,7 @@ export default function DashboardPage() {
         <DashboardPageSkeleton />
       ) : (
         <section className="px-4 sm:px-6 md:px-8 pb-14">
-          <div className="max-w-7xl mx-auto mt-6 space-y-8">
+          <div className="max-w-[90rem] mx-auto mt-6 space-y-8">
             <DailyForecast daily={weatherPayload?.weather?.daily} />
 
             <StatsGrid weather={weatherPayload} theme={theme} />

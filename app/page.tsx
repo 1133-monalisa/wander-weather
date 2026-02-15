@@ -128,7 +128,7 @@ export default function Page() {
       <main className="pt-22 md:pt-24">
         {/* HERO SECTION */}
         <section className="relative px-6 md:px-8 pb-12 overflow-hidden">
-          <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="max-w-[90rem] mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -272,7 +272,7 @@ export default function Page() {
           id="ai-planner"
           className="py-12 bg-white relative overflow-hidden"
         >
-          <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="max-w-[90rem] mx-auto px-6 relative z-10">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <motion.div
                 initial="hidden"
@@ -448,7 +448,7 @@ export default function Page() {
           id="features"
           className="py-12 bg-slate-50 relative scroll-mt-20"
         >
-          <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="max-w-[90rem] mx-auto px-6 relative z-10">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -703,7 +703,7 @@ export default function Page() {
 
         {/* DESTINATIONS SECTION */}
         <section id="destinations" className="py-12 bg-white scroll-mt-20">
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-[90rem] mx-auto px-6">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -818,7 +818,7 @@ export default function Page() {
 
         {/* CULTURAL SECTION */}
         <section id="cultural-guide" className="py-12 bg-white scroll-mt-20">
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-[90rem] mx-auto px-6">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -968,7 +968,7 @@ export default function Page() {
           id="reviews"
           className="py-12 bg-slate-50 relative scroll-mt-20"
         >
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-[90rem] mx-auto px-6">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -1052,7 +1052,7 @@ export default function Page() {
 
         {/* CTA SECTION */}
         <section className="py-12 px-4 sm:px-6 bg-slate-50">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-[90rem] mx-auto">
             <motion.div
               initial="hidden"
               whileInView="visible"

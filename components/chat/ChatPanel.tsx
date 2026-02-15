@@ -173,12 +173,12 @@ export function ChatPanel({
 
   const recentChatIdSet = useMemo(
     () => new Set(orderedRecentChatIds),
-    [orderedRecentChatIds]
+    [orderedRecentChatIds],
   );
 
   const recentUsers = useMemo(() => {
     const lookup = new Map(
-      filteredUsers.map((profile) => [profile.uid, profile])
+      filteredUsers.map((profile) => [profile.uid, profile]),
     );
     return orderedRecentChatIds
       .map((id) => lookup.get(id))
@@ -187,7 +187,7 @@ export function ChatPanel({
 
   const otherUsers = useMemo(
     () => filteredUsers.filter((profile) => !recentChatIdSet.has(profile.uid)),
-    [filteredUsers, recentChatIdSet]
+    [filteredUsers, recentChatIdSet],
   );
 
   // --- Auto scroll ---
@@ -245,7 +245,7 @@ export function ChatPanel({
   };
 
   const handleComposerKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -275,7 +275,7 @@ export function ChatPanel({
   const showChat = mobileView === "chat";
 
   return (
-    <div className={`h-full max-w-7xl mx-auto ${resolvedTheme.surface}`}>
+    <div className={`h-full max-w-[90rem] mx-auto ${resolvedTheme.surface}`}>
       <div className="h-full mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] h-full">
           {/* LEFT */}
@@ -555,7 +555,9 @@ export function ChatPanel({
                       className="h-11 w-11 rounded-2xl"
                       fallbackClassName={[
                         "font-extrabold text-xs rounded-2xl",
-                        activeUser ? resolvedTheme.softAccentBg : "bg-slate-100",
+                        activeUser
+                          ? resolvedTheme.softAccentBg
+                          : "bg-slate-100",
                         activeUser
                           ? resolvedTheme.accentText
                           : "text-slate-500",

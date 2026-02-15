@@ -50,7 +50,7 @@ export function DashboardHeader({
 
   return (
     <section className="p-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[90rem] mx-auto">
         <div className="sticky top-[72px] md:top-[80px] z-30">
           <div className="rounded-[2rem] border border-slate-200/80 bg-white/75 backdrop-blur-xl shadow-sm">
             <div className="p-4 sm:p-5 md:p-6 flex flex-col gap-3">
@@ -77,7 +77,8 @@ export function DashboardHeader({
                         <button
                           type="button"
                           onClick={() =>
-                            locationLabel && onSearch(locationLabel.split(",")[0])
+                            locationLabel &&
+                            onSearch(locationLabel.split(",")[0])
                           }
                           disabled={loading || !locationLabel}
                           aria-label="Refresh weather"
@@ -94,7 +95,10 @@ export function DashboardHeader({
                           )}
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs font-medium">
+                      <TooltipContent
+                        side="bottom"
+                        className="text-xs font-medium"
+                      >
                         Refresh
                       </TooltipContent>
                     </Tooltip>
@@ -110,15 +114,15 @@ export function DashboardHeader({
                             onClick={onSaveTrip}
                             disabled={saveDisabled || savingTrip || savedTrip}
                             aria-label={savedTrip ? "Trip saved" : "Save trip"}
-                          className={`h-10 w-10 rounded-full bg-white border ${theme.border} flex items-center justify-center transition-colors ${
-                            savedTrip
-                              ? `${theme.softAccentBg} ${theme.accentText}`
-                              : "text-slate-600"
-                          } ${
-                            saveDisabled || savingTrip || savedTrip
-                              ? "opacity-60 cursor-not-allowed"
-                              : `hover:${theme.softAccentBg} hover:${theme.accentText} cursor-pointer`
-                          }`}
+                            className={`h-10 w-10 rounded-full bg-white border ${theme.border} flex items-center justify-center transition-colors ${
+                              savedTrip
+                                ? `${theme.softAccentBg} ${theme.accentText}`
+                                : "text-slate-600"
+                            } ${
+                              saveDisabled || savingTrip || savedTrip
+                                ? "opacity-60 cursor-not-allowed"
+                                : `hover:${theme.softAccentBg} hover:${theme.accentText} cursor-pointer`
+                            }`}
                           >
                             {savedTrip ? (
                               <BookmarkCheck className="w-4 h-4" />
@@ -127,8 +131,15 @@ export function DashboardHeader({
                             )}
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs font-medium">
-                          {savedTrip ? "Saved" : savingTrip ? "Saving..." : "Save trip"}
+                        <TooltipContent
+                          side="bottom"
+                          className="text-xs font-medium"
+                        >
+                          {savedTrip
+                            ? "Saved"
+                            : savingTrip
+                              ? "Saving..."
+                              : "Save trip"}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>

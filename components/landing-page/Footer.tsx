@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Instagram, Facebook, Youtube, MapPin, Mail } from "lucide-react";
 import { MoodTheme } from "@/lib/mood";
 
@@ -60,24 +61,18 @@ const FOOTER_COLUMNS = [
 const Footer: React.FC<FooterProps> = ({ theme }) => {
   return (
     <footer className={`mt-16 border-t ${theme.border} bg-white`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 md:py-14 space-y-10">
+      <div className="max-w-[90rem] mx-auto px-4 sm:px-6 py-10 md:py-14 space-y-10">
         {/* Top */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-8">
           <div className="space-y-3 max-w-xl w-full">
             <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-xl ${theme.accentBg} text-white flex items-center justify-center`}
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
+              <Image
+                src="/logo/logo.jpg"
+                alt="Wander Weather logo"
+                width={200}
+                height={200}
+                className="h-20 w-20 rounded-full object-contain"
+              />
 
               <div>
                 <p className="text-sm font-semibold tracking-[0.18em] uppercase text-slate-800">

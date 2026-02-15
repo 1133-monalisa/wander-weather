@@ -3,7 +3,7 @@
 export function MessagesPageSkeleton() {
   return (
     <section className="h-[calc(100vh-5rem)] p-4">
-      <div className="h-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-4 animate-pulse">
+      <div className="h-full max-w-[90rem] mx-auto grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-4 animate-pulse">
         {/* LEFT COLUMN */}
         <div className="border border-slate-200 rounded-2xl bg-white/80 flex flex-col">
           <div className="border-b border-slate-200/80 bg-white/85 px-5 pt-5 pb-4 space-y-3">

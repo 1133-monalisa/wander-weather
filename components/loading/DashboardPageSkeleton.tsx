@@ -3,7 +3,7 @@
 export function DashboardPageSkeleton() {
   return (
     <section className="px-4 sm:px-6 md:px-8 pb-14">
-      <div className="max-w-7xl mx-auto mt-6 space-y-8">
+      <div className="max-w-[90rem] mx-auto mt-6 space-y-8">
         {/* 7-day forecast hero + strip */}
         <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 sm:p-7 shadow-sm">
           <div className="flex items-start justify-between gap-4">
