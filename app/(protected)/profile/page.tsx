@@ -13,7 +13,6 @@ import {
   AtSign,
   ImageOff,
   Copy,
-  Sparkles,
   User,
   Fingerprint,
   Mail,
@@ -172,7 +171,7 @@ export default function ProfilePage() {
             >
               <CardHeader className="p-6 border-b border-black/[0.05] bg-black/[0.01]">
                 <SectionTitle
-                  icon={<Sparkles className="h-5 w-5 text-amber-500" />}
+                  icon={<User className="h-5 w-5 text-amber-500" />}
                   title="Your Identity"
                   subtitle="Preview and account data"
                   themeHeading={theme.heading}
