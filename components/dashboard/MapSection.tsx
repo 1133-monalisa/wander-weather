@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, MapPin, Map as MapIcon } from "lucide-react";
+import { Compass, Navigation, MapPin, Map as MapIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WeatherPayload } from "@/types/weather";
 
@@ -58,7 +58,7 @@ export function MapSection({
                 <div className="relative">
                   <div className="absolute inset-0 bg-emerald-100 rounded-full animate-ping opacity-75" />
                   <div className="relative h-16 w-16 bg-white rounded-full border-4 border-emerald-50 flex items-center justify-center shadow-sm">
-                    <Sparkles className="w-6 h-6 text-emerald-500 animate-pulse" />
+                    <Compass className="w-6 h-6 text-emerald-500 animate-pulse" />
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -201,7 +201,7 @@ export function MapSection({
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="text-center md:text-left max-w-lg">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider mb-4">
-                  <Sparkles className="w-3 h-3" />
+                  <Navigation className="w-3 h-3" />
                   AI Map Generator
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
