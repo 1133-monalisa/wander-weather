@@ -1,32 +1,39 @@
 "use client";
 
-import { useState } from "react";
 import { WeatherPayload } from "@/types/weather";
 import type { Trip } from "@/types/firebase";
 
-// --- FIX: Import from the correct files ---
 import { normalizeAiToMarkdown } from "@/lib/ai-parsing";
 import { extractApiErrorMessage } from "@/lib/weather-utils";
+import { useDashboardWeatherStore } from "@/lib/stores/dashboard-weather-store";
 
 export function useWeather() {
-  const [weatherPayload, setWeatherPayload] = useState<WeatherPayload | null>(
-    null
-  );
-  const [suggestion, setSuggestion] = useState<string>("");
-  const [loadingWeather, setLoadingWeather] = useState(false);
-  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
-  const [error, setError] = useState<string>("");
+  const weatherPayload = useDashboardWeatherStore((s) => s.weatherPayload);
+  const suggestion = useDashboardWeatherStore((s) => s.suggestion);
+  const loadingWeather = useDashboardWeatherStore((s) => s.loadingWeather);
+  const loadingSuggestion = useDashboardWeatherStore((s) => s.loadingSuggestion);
+  const error = useDashboardWeatherStore((s) => s.error);
+  const aiPins = useDashboardWeatherStore((s) => s.aiPins);
+  const activitiesList = useDashboardWeatherStore((s) => s.activitiesList);
+  const packingList = useDashboardWeatherStore((s) => s.packingList);
 
-  const [aiPins, setAiPins] = useState<any[]>([]);
-  const [activitiesList, setActivitiesList] = useState<string[]>([]);
-  const [packingList, setPackingList] = useState<string[]>([]);
+  const setWeatherPayload = useDashboardWeatherStore((s) => s.setWeatherPayload);
+  const setSuggestion = useDashboardWeatherStore((s) => s.setSuggestion);
+  const setLoadingWeather = useDashboardWeatherStore((s) => s.setLoadingWeather);
+  const setLoadingSuggestion = useDashboardWeatherStore(
+    (s) => s.setLoadingSuggestion
+  );
+  const setError = useDashboardWeatherStore((s) => s.setError);
+  const setAiPins = useDashboardWeatherStore((s) => s.setAiPins);
+  const setActivitiesList = useDashboardWeatherStore((s) => s.setActivitiesList);
+  const setPackingList = useDashboardWeatherStore((s) => s.setPackingList);
+  const resetSearchData = useDashboardWeatherStore((s) => s.resetSearchData);
 
   const busy = loadingWeather || loadingSuggestion;
 
   async function fetchWeather(place: string) {
     setError("");
-    setSuggestion("");
-    setWeatherPayload(null);
+    resetSearchData();
     setLoadingWeather(true);
     try {
       const res = await fetch(`/api/weather?q=${encodeURIComponent(place)}`, {
@@ -89,6 +96,10 @@ export function useWeather() {
     if (w) await fetchSuggestion(w);
   }
 
+  function clearSearchData() {
+    resetSearchData();
+  }
+
   function applyTrip(trip: Trip) {
     setError("");
     setWeatherPayload(trip.weatherPayload ?? null);
@@ -111,6 +122,7 @@ export function useWeather() {
     activitiesList,
     packingList,
     run,
+    clearSearchData,
     applyTrip,
     setError,
   };

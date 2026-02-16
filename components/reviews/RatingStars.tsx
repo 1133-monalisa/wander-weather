@@ -26,6 +26,7 @@ export function RatingStars({
         const icon = (
           <Star
             className={[
+              "cursor-pointer",
               "transition-colors",
               filled ? "text-amber-500" : "text-slate-300",
             ].join(" ")}

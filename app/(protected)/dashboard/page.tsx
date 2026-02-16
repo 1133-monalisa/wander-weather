@@ -9,6 +9,8 @@ import { MapSection } from "@/components/dashboard/MapSection";
 import { WeatherCharts } from "@/components/dashboard/WeatherCharts";
 import { DailyForecast } from "@/components/dashboard/DailyForecast";
 import { AiPlanSection } from "@/components/dashboard/AiPlanSection";
+import { PlaceReviewsSection } from "@/components/dashboard/PlaceReviewsSection";
+import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
 import Footer from "@/components/landing-page/Footer";
 import { DashboardPageSkeleton } from "@/components/loading/DashboardPageSkeleton";
 import { useDashboardMoodContext } from "@/context/DashboardMoodContext";
@@ -31,6 +33,7 @@ export default function DashboardPage() {
     activitiesList,
     packingList,
     run,
+    clearSearchData,
     applyTrip,
   } = useWeather();
   const { trips, saving: tripsSaving, saveTrip } = useTrips(user?.uid);
@@ -48,6 +51,7 @@ export default function DashboardPage() {
   }, [weatherPayload]);
 
   const showSkeleton = loading && !weatherPayload;
+  const hasDashboardData = Boolean(weatherPayload);
   const hasSavableTrip = Boolean(
     user && weatherPayload && locationLabel && suggestion,
   );
@@ -87,17 +91,25 @@ export default function DashboardPage() {
       <DashboardHeader
         onSearch={run}
         onSaveTrip={hasSavableTrip ? handleSaveTrip : undefined}
+        onClearSearch={clearSearchData}
         locationLabel={locationLabel}
         loading={loading}
         savingTrip={tripsSaving}
         savedTrip={isTripSaved}
         saveDisabled={!hasSavableTrip}
+        clearDisabled={!hasDashboardData}
         error={error}
         theme={theme}
       />
 
       {showSkeleton ? (
         <DashboardPageSkeleton />
+      ) : !hasDashboardData ? (
+        <section className="pb-14">
+          <div className="max-w-[90rem] mx-auto">
+            <DashboardEmptyState theme={theme} />
+          </div>
+        </section>
       ) : (
         <section className="px-4 sm:px-6 md:px-8 pb-14">
           <div className="max-w-[90rem] mx-auto mt-6 space-y-8">
@@ -125,6 +137,8 @@ export default function DashboardPage() {
               savedTrip={isTripSaved}
               theme={theme}
             />
+
+            <PlaceReviewsSection locationLabel={locationLabel} theme={theme} />
           </div>
         </section>
       )}

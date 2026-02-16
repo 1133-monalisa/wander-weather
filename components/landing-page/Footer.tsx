@@ -60,8 +60,8 @@ const FOOTER_COLUMNS = [
 
 const Footer: React.FC<FooterProps> = ({ theme }) => {
   return (
-    <footer className={`mt-16 border-t ${theme.border} bg-white`}>
-      <div className="max-w-[90rem] mx-auto px-4 sm:px-6 py-10 md:py-14 space-y-10">
+    <footer className={`border-t ${theme.border} bg-white`}>
+      <div className="max-w-[90rem] mx-auto p-4 sm:p-6 pace-y-10">
         {/* Top */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-8">
           <div className="space-y-3 max-w-xl w-full">
