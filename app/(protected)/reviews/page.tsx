@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { MessageCircle, MapPin, Search, Star } from "lucide-react";
+import { MessageCircle, MapPin, Search } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { useDashboardMoodContext } from "@/context/DashboardMoodContext";
@@ -112,7 +112,7 @@ export default function ReviewsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-6">
-          <aside className="space-y-6">
+          <aside className="self-start lg:sticky lg:top-[110px]">
             <form
               onSubmit={handleSubmit}
               className={`rounded-3xl border ${theme.border} bg-white p-5 shadow-sm space-y-4`}
@@ -201,32 +201,21 @@ export default function ReviewsPage() {
                 </div>
               )}
             </form>
-
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3 shadow-sm">
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-amber-500" />
-                <p className="text-sm font-bold text-slate-900">
-                  Community tips
-                </p>
-              </div>
-              <p className="text-xs text-slate-500">
-                Use the chat button on a review to connect with that traveler
-                directly.
-              </p>
-            </div>
           </aside>
 
-          <div className="space-y-4">
-            <div
-              className={`flex items-center gap-3 rounded-2xl border ${theme.border} bg-white/70 px-4 py-3`}
-            >
-              <Search className="w-4 h-4 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search reviews, destinations, travelers..."
-                className="flex-1 bg-transparent text-sm outline-none"
-              />
+          <div className="relative isolate space-y-4">
+            <div className="sticky top-20 z-40 py-2">
+              <div
+                className={`flex items-center gap-3 rounded-2xl border ${theme.border} bg-white px-4 py-3 shadow-sm`}
+              >
+                <Search className="w-4 h-4 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search reviews, destinations, travelers..."
+                  className="flex-1 bg-transparent text-sm outline-none"
+                />
+              </div>
             </div>
 
             {loading ? (

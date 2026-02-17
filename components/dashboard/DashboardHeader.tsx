@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Bookmark,
   BookmarkCheck,
+  RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,11 +21,13 @@ import {
 interface DashboardHeaderProps {
   onSearch: (query: string) => void;
   onSaveTrip?: () => void;
+  onClearSearch?: () => void;
   locationLabel: string;
   loading: boolean;
   savingTrip?: boolean;
   savedTrip?: boolean;
   saveDisabled?: boolean;
+  clearDisabled?: boolean;
   error: string;
   theme: any;
 }
@@ -32,11 +35,13 @@ interface DashboardHeaderProps {
 export function DashboardHeader({
   onSearch,
   onSaveTrip,
+  onClearSearch,
   locationLabel,
   loading,
   savingTrip = false,
   savedTrip = false,
   saveDisabled = false,
+  clearDisabled = false,
   error,
   theme,
 }: DashboardHeaderProps) {
@@ -52,7 +57,7 @@ export function DashboardHeader({
     <section className="p-4">
       <div className="max-w-[90rem] mx-auto">
         <div className="sticky top-[72px] md:top-[80px] z-30">
-          <div className="rounded-[2rem] border border-slate-200/80 bg-white/75 backdrop-blur-xl shadow-sm">
+          <div className="rounded-md border border-slate-200/80 bg-white/75 backdrop-blur-xl">
             <div className="p-4 sm:p-5 md:p-6 flex flex-col gap-3">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
@@ -70,6 +75,38 @@ export function DashboardHeader({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Clear search/store icon */}
+                  {onClearSearch && (
+                    <TooltipProvider delayDuration={0}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClearSearch();
+                              setQuery("");
+                            }}
+                            disabled={loading || clearDisabled}
+                            aria-label="Clear current result"
+                            className={`h-10 w-10 rounded-full bg-white border ${theme.border} text-slate-600 flex items-center justify-center transition-colors ${
+                              loading || clearDisabled
+                                ? "opacity-60 cursor-not-allowed"
+                                : `hover:${theme.softAccentBg} hover:${theme.accentText} cursor-pointer`
+                            }`}
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="bottom"
+                          className="text-xs font-medium"
+                        >
+                          Clear
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+
                   {/* Refresh icon */}
                   <TooltipProvider delayDuration={0}>
                     <Tooltip>

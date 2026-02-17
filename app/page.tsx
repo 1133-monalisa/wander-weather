@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Circle,
   Navigation,
-  Sparkles,
   Thermometer,
   Calendar,
   Bot,
@@ -328,7 +327,7 @@ export default function Page() {
                     >
                       <div className="bg-white border border-slate-100 text-slate-700 text-sm px-5 py-4 rounded-2xl rounded-tl-sm shadow-sm w-full">
                         <p className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                          <Sparkles className="w-3 h-3 text-amber-500" /> Wander
+                          <Bot className="w-3 h-3 text-amber-500" /> Wander
                           AI
                         </p>
                         <ul className="space-y-2 mb-3">
@@ -432,7 +431,7 @@ export default function Page() {
                       <div
                         className={`mt-1 w-5 h-5 rounded-full ${theme.accentBg} flex items-center justify-center text-white flex-shrink-0`}
                       >
-                        <Sparkles className="w-2.5 h-2.5" />
+                        <Navigation className="w-2.5 h-2.5" />
                       </div>
                       <span className="text-slate-700">{item}</span>
                     </motion.li>
@@ -1103,7 +1102,7 @@ export default function Page() {
               <div className="relative z-20 w-full max-w-2xl px-6">
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-8 md:p-12 text-center shadow-2xl">
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-slate-900 text-xs font-bold uppercase tracking-widest mb-8">
-                    <Sparkles className="w-3.5 h-3.5 fill-slate-900" />
+                    <Map className="w-3.5 h-3.5" />
                     Your Journey Awaits
                   </div>
 

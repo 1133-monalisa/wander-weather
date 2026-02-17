@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { AiSection, AiSectionKey } from "@/types/weather";
 import {
   Map as MapIcon,
@@ -10,7 +10,6 @@ import {
   Backpack,
   CloudSun,
   Info,
-  Sparkles,
 } from "lucide-react";
 
 export function normalizeAiToMarkdown(s: string) {
@@ -61,7 +60,7 @@ export function splitAiIntoSections(markdown: string): AiSection[] {
     key,
     title,
     icon,
-    body: body?.trim() || "—",
+    body: body?.trim() || "â€”",
   });
 
   const mapped = sections.map((s) => {
@@ -121,10 +120,10 @@ export function splitAiIntoSections(markdown: string): AiSection[] {
     return mk("raw", s.title, <Info className="h-4 w-4" />, body);
   });
 
-  const nonEmpty = mapped.filter((x) => x.body && x.body !== "—");
+  const nonEmpty = mapped.filter((x) => x.body && x.body !== "â€”");
   return nonEmpty.length
     ? nonEmpty
-    : [mk("raw", "Plan", <Sparkles className="h-4 w-4" />, markdown)];
+    : [mk("raw", "Plan", <MapIcon className="h-4 w-4" />, markdown)];
 }
 
 export function mdToItems(md: string) {
@@ -132,7 +131,7 @@ export function mdToItems(md: string) {
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean)
-    .map((l) => l.replace(/^([-•]|\d+\.)\s*/, ""))
+    .map((l) => l.replace(/^([-â€¢]|\d+\.)\s*/, ""))
     .filter(Boolean)
     .slice(0, 10);
 }
@@ -145,3 +144,4 @@ export function extractBestDaysChips(bestDaysBody: string) {
     .filter(Boolean);
   return parts.slice(0, 6);
 }
+
