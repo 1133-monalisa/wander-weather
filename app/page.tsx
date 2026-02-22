@@ -20,6 +20,7 @@ import {
   Sun,
   Landmark,
   Star,
+  X,
 } from "lucide-react";
 
 import { Mood, MOOD_THEMES } from "@/lib/mood";
@@ -88,6 +89,8 @@ export default function Page() {
   const [mood, setMood] = useState<Mood>("calm");
   const [isMounted, setIsMounted] = useState(false);
 
+  const [showVideoModal, setShowVideoModal] = useState(false);
+
   const [authenticIndex, setAuthenticIndex] = useState(0);
   const { reviews: landingReviews, loading: reviewsLoading } = useReviews({
     limit: 3,
@@ -108,6 +111,15 @@ export default function Page() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!showVideoModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowVideoModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showVideoModal]);
 
   const changeMood = (newMood: Mood) => {
     setMood(newMood);
@@ -135,17 +147,7 @@ export default function Page() {
               variants={containerVariants}
               className="order-1 flex flex-col justify-center"
             >
-              <motion.div
-                variants={itemVariants}
-                className={`inline-flex items-center gap-2 self-start px-3 py-1 rounded-full bg-white border ${theme.border} shadow-sm mb-6`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full animate-pulse ${theme.accentBg}`}
-                />
-                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-500">
-                  AI-Powered Nepal Travel
-                </span>
-              </motion.div>
+             
 
               <motion.h1
                 variants={itemVariants}
@@ -176,11 +178,11 @@ export default function Page() {
                 >
                   Start Planning Free
                 </Link>
-                <button className="h-12 px-6 rounded-full bg-white border border-slate-200 text-slate-700 font-semibold text-base hover:bg-slate-50 transition-colors flex items-center gap-2 group">
+                <button className="h-12 px-6 rounded-full cursor-pointer bg-white border border-slate-200 text-slate-700 font-semibold text-base hover:shadow-xl transition-all hover:-translate-y-1 hover:bg-slate-50 transition-colors flex items-center gap-2 group">
                   <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-hover:scale-110 transition-transform text-xs">
                     ▶
                   </span>
-                  See Pokhara Demo
+                  <span onClick={() => setShowVideoModal(true)}>A Piece of Journey</span>
                 </button>
               </motion.div>
             </motion.div>
@@ -265,6 +267,35 @@ export default function Page() {
         </section>
 
         <Marquee theme={theme} />
+
+        {showVideoModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setShowVideoModal(false)}
+            />
+
+            <div className="relative w-full max-w-4xl mx-4">
+              <button
+                aria-label="Close video"
+                onClick={() => setShowVideoModal(false)}
+                className="absolute -top-3 -right-3 z-50 bg-white rounded-full text-slate-700  p-2 shadow-lg"
+              >
+              <X className="w-4 h-4" />
+              </button>
+
+              <div className="bg-black rounded-lg overflow-hidden">
+                <video
+                  src={encodeURI('/videos/WhatsApp Video 2026-02-22 at 8.44.23 PM.mp4')}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* AI SECTION */}
         <section
